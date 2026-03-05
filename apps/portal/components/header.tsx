@@ -410,7 +410,7 @@ export default function Header({ currentUser, onUserTypeChange }: HeaderProps) {
         <div className="flex items-center">
           <Link href="/" className="mr-6">
             <Image
-              src="/images/plp-logo-white.png"
+              src="/public/images/plp-logo-white.png"
               alt="PLP Logo"
               width={100}
               height={10}
