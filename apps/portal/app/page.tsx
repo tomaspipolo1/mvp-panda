@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import Header from "@/components/header"
 import Sidebar from "@/components/sidebar"
+import { toPortalPath } from "@/lib/portal-path"
 
 export default function Home() {
   const router = useRouter()
@@ -14,16 +15,16 @@ export default function Home() {
 
     switch (userType) {
       case "Empleado - Contable":
-        router.push("/empleado-contable")
+        router.push(toPortalPath("/empleado-contable"))
         break
       default:
-        router.push("/empleado-prensa")
+        router.push(toPortalPath("/empleado-prensa"))
     }
   }
 
   // En MVP, el acceso inicial del portal es Prensa.
   useEffect(() => {
-    router.push("/empleado-prensa")
+    router.push(toPortalPath("/empleado-prensa"))
   }, [router])
 
   return (

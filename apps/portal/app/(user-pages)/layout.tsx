@@ -7,6 +7,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import Header from "@/components/header"
 import Sidebar from "@/components/sidebar"
+import { normalizePortalPath, toPortalPath } from "@/lib/portal-path"
 
 export default function UserPagesLayout({
   children,
@@ -15,6 +16,7 @@ export default function UserPagesLayout({
 }) {
   const router = useRouter()
   const pathname = usePathname()
+  const normalizedPathname = normalizePortalPath(pathname || "/")
   const [headerHeight, setHeaderHeight] = useState(64) // Altura inicial del header (16 * 4 = 64px)
 
   const segmentLabels: Record<string, string> = {
@@ -67,7 +69,7 @@ export default function UserPagesLayout({
   const breadcrumbs = useMemo(() => {
     if (!pathname) return []
     const segments = pathname.split("/").filter(Boolean)
-    const trail = [{ href: "/", label: "Home" }]
+    const trail = [{ href: toPortalPath("/"), label: "Home" }]
     let accumulator = ""
     segments.forEach((seg) => {
       accumulator += `/${seg}`
@@ -83,22 +85,22 @@ export default function UserPagesLayout({
     return "Empleado - Prensa"
   }
 
-  const [currentUser, setCurrentUser] = useState(getUserTypeFromPath(pathname))
+  const [currentUser, setCurrentUser] = useState(getUserTypeFromPath(normalizedPathname))
 
   // Actualizar el tipo de usuario cuando cambia la ruta
   useEffect(() => {
-    setCurrentUser(getUserTypeFromPath(pathname))
-  }, [pathname])
+    setCurrentUser(getUserTypeFromPath(normalizedPathname))
+  }, [normalizedPathname])
 
   // MVP: bloquear navegación a rutas fuera de Prensa/Contable.
   useEffect(() => {
-    if (!pathname) return
+    if (!normalizedPathname) return
     const allowedPrefixes = ["/empleado-prensa", "/empleado-contable"]
-    const isAllowed = allowedPrefixes.some((prefix) => pathname.startsWith(prefix))
+    const isAllowed = allowedPrefixes.some((prefix) => normalizedPathname.startsWith(prefix))
     if (!isAllowed) {
-      router.replace("/empleado-prensa")
+      router.replace(toPortalPath("/empleado-prensa"))
     }
-  }, [pathname, router])
+  }, [normalizedPathname, router])
 
   // Efecto para detectar el scroll y ajustar el contenido principal
   useEffect(() => {
@@ -118,10 +120,10 @@ export default function UserPagesLayout({
 
     switch (userType) {
       case "Empleado - Contable":
-        router.push("/empleado-contable")
+        router.push(toPortalPath("/empleado-contable"))
         break
       default:
-        router.push("/empleado-prensa")
+        router.push(toPortalPath("/empleado-prensa"))
     }
   }
 

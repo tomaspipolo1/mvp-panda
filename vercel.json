@@ -20,11 +20,11 @@
   "routes": [
     {
       "src": "^/portal$",
-      "dest": "apps/portal/portal"
+      "dest": "apps/portal"
     },
     {
       "src": "^/portal/(.*)$",
-      "dest": "apps/portal/portal/$1"
+      "dest": "apps/portal/$1"
     },
     {
       "src": "^/(.*)$",

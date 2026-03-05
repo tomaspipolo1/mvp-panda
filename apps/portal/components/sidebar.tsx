@@ -51,6 +51,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { normalizePortalPath, toPortalPath } from "@/lib/portal-path"
 
 type SubSubModule = {
   name: string
@@ -89,6 +90,7 @@ export default function Sidebar({ userType = "Proveedor" }: { userType?: string 
   const isMobile = useIsMobile()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
+  const normalizedPathname = normalizePortalPath(pathname || "/")
 
   // Sincronizar colapso con mobile
   useEffect(() => {
@@ -374,7 +376,7 @@ export default function Sidebar({ userType = "Proveedor" }: { userType?: string 
 
     const consider = (href: string | undefined, moduleName: string, subName?: string, subSubName?: string) => {
       if (!href) return
-      if (pathname === href || pathname.startsWith(`${href}/`)) {
+      if (normalizedPathname === href || normalizedPathname.startsWith(`${href}/`)) {
         const len = href.length
         if (len > bestLen) {
           bestLen = len
@@ -404,7 +406,7 @@ export default function Sidebar({ userType = "Proveedor" }: { userType?: string 
     setActiveModule(bestModule)
     setActiveSubModule(bestSubModule)
     setActiveSubSubModule(bestSubSub)
-  }, [modules, pathname])
+  }, [modules, normalizedPathname])
 
   const toggleModule = (moduleName: string) => {
     if (activeModule === moduleName) {
@@ -541,7 +543,7 @@ export default function Sidebar({ userType = "Proveedor" }: { userType?: string 
                                 {subModule.subModules.map((subSubModule) => (
                                   <Link
                                     key={subSubModule.name}
-                                    href={subSubModule.href}
+                                    href={toPortalPath(subSubModule.href)}
                                     className={cn(
                                       "flex items-center py-2.5 px-3 rounded-md text-gray-300 transition-colors hover:bg-[#2a2a49]",
                                       activeSubSubModule === subSubModule.name && "bg-[#6BA5D8] text-white"
@@ -560,7 +562,7 @@ export default function Sidebar({ userType = "Proveedor" }: { userType?: string 
                             </Collapsible>
                           ) : (
                             <Link
-                              href={subModule.href}
+                              href={toPortalPath(subModule.href)}
                               className={cn(
                                 "flex items-center py-2.5 px-3 rounded-md text-gray-200 transition-colors",
                                 "hover:bg-[#2a2a49]",
@@ -583,7 +585,7 @@ export default function Sidebar({ userType = "Proveedor" }: { userType?: string 
                 </Collapsible>
               ) : (
                 <Link
-                  href={module.href || "#"}
+                  href={module.href ? toPortalPath(module.href) : "#"}
                   className={cn(
                     "flex items-center py-2.5 px-3 rounded-md transition-colors",
                     activeModule === module.name
