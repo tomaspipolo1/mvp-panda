@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/landing/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "apps/portal/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/landing",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
+  "routes": [
+    {
+      "src": "^/portal$",
+      "dest": "apps/portal/portal"
+    },
+    {
+      "src": "^/portal/(.*)$",
+      "dest": "apps/portal/portal/$1"
+    },
+    {
+      "src": "^/(.*)$",
+      "dest": "apps/landing/$1"
+    }
+  ]
+}

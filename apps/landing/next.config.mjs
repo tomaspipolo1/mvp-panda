@@ -13,6 +13,9 @@ try {
 
 /** @type {import('next').NextConfig} */
 const portalOrigin = process.env.PORTAL_ORIGIN || "http://localhost:3001"
+const useLocalPortalProxy =
+  process.env.NODE_ENV !== "production" &&
+  process.env.ENABLE_LOCAL_PORTAL_PROXY !== "false"
 
 const nextConfig = {
   eslint: {
@@ -29,7 +32,20 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/landing",
+        destination: "/",
+        permanent: true,
+      },
+    ]
+  },
   async rewrites() {
+    if (!useLocalPortalProxy) {
+      return []
+    }
+
     return [
       {
         source: "/portal",
