@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { toPortalAssetPath, toPortalPath } from "@/lib/portal-path"
 import {
   Dialog,
   DialogContent,
@@ -408,9 +409,9 @@ export default function Header({ currentUser, onUserTypeChange }: HeaderProps) {
         className={cn("container mx-auto flex items-center justify-between px-4 h-full transition-all duration-300")}
       >
         <div className="flex items-center">
-          <Link href="/" className="mr-6">
+          <Link href={toPortalPath("/empleado-prensa")} className="mr-6">
             <Image
-              src="/public/images/plp-logo-white.png"
+              src={toPortalAssetPath("/images/plp-logo-white.png")}
               alt="PLP Logo"
               width={100}
               height={10}
@@ -419,7 +420,7 @@ export default function Header({ currentUser, onUserTypeChange }: HeaderProps) {
             />
           </Link>
         </div>
-
+      
         <div className="flex items-center space-x-4">
           {/* Ayuda */}
           <Button

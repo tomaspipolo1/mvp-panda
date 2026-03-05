@@ -17,3 +17,8 @@ export function toPortalPath(pathname: string): string {
   }
   return `${PORTAL_BASE_PATH}${normalized}`
 }
+
+export function toPortalAssetPath(assetPath: string): string {
+  const normalized = assetPath.startsWith("/") ? assetPath : `/${assetPath}`
+  return toPortalPath(normalized)
+}

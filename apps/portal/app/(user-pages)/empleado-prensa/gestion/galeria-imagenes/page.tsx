@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { toPortalAssetPath } from "@/lib/portal-path"
 
 // Datos de ejemplo para la galería
 const imagenesEjemplo = [
@@ -22,38 +23,38 @@ const imagenesEjemplo = [
     titulo: "Edificio corporativo",
     categoria: "instalaciones",
     fecha: "15/04/2023",
-    url: "/interconnected-network.png",
+    url: "/images/interconnected-network.png",
   },
-  { id: 2, titulo: "Equipo directivo", categoria: "personas", fecha: "10/03/2023", url: "/confident-leader.png" },
-  { id: 3, titulo: "Evento anual", categoria: "eventos", fecha: "05/02/2023", url: "/diverse-team-meeting.png" },
+  { id: 2, titulo: "Equipo directivo", categoria: "personas", fecha: "10/03/2023", url: "/images/confident-leader.png" },
+  { id: 3, titulo: "Evento anual", categoria: "eventos", fecha: "05/02/2023", url: "/images/diverse-team-meeting.png" },
   {
     id: 4,
     titulo: "Producto destacado",
     categoria: "productos",
     fecha: "20/01/2023",
-    url: "/classic-red-convertible.png",
+    url: "/images/classic-red-convertible.png",
   },
   {
     id: 5,
     titulo: "Oficinas centrales",
     categoria: "instalaciones",
     fecha: "15/12/2022",
-    url: "/wooden-shelf-with-decor.png",
+    url: "/images/wooden-shelf-with-decor.png",
   },
   {
     id: 6,
     titulo: "Reunión de trabajo",
     categoria: "personas",
     fecha: "10/11/2022",
-    url: "/professional-interview-setup.png",
+    url: "/images/professional-interview-setup.png",
   },
-  { id: 7, titulo: "Conferencia de prensa", categoria: "eventos", fecha: "05/10/2022", url: "/reading-the-news.png" },
+  { id: 7, titulo: "Conferencia de prensa", categoria: "eventos", fecha: "05/10/2022", url: "/images/reading-the-news.png" },
   {
     id: 8,
     titulo: "Catálogo de servicios",
     categoria: "productos",
     fecha: "01/09/2022",
-    url: "/diverse-online-profiles.png",
+    url: "/images/diverse-online-profiles.png",
   },
 ]
 
@@ -65,6 +66,7 @@ export default function GaleriaImagenesPage() {
   const [archivosSeleccionados, setArchivosSeleccionados] = useState<string[]>([])
   const [tituloImagen, setTituloImagen] = useState("")
   const [categoriaImagen, setCategoriaImagen] = useState("")
+  const defaultImageSrc = toPortalAssetPath("/placeholder.svg")
 
   // Filtrar imágenes según búsqueda y categoría
   const imagenesFiltradas = imagenesEjemplo.filter((img) => {
@@ -149,7 +151,12 @@ export default function GaleriaImagenesPage() {
               onClick={() => setImagenSeleccionada(imagen.id === imagenSeleccionada ? null : imagen.id)}
             >
               <div className="relative h-40">
-                <Image src={imagen.url || "/placeholder.svg"} alt={imagen.titulo} fill style={{ objectFit: "cover" }} />
+                <Image
+                  src={toPortalAssetPath(imagen.url || defaultImageSrc)}
+                  alt={imagen.titulo}
+                  fill
+                  style={{ objectFit: "cover" }}
+                />
               </div>
               <div className="p-3">
                 <h3 className="font-medium truncate">{imagen.titulo}</h3>
