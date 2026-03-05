@@ -1,0 +1,345 @@
+"use client"
+
+import { useState } from "react"
+import { Search, Filter, Download, Eye, Edit, UserCheck, UserX } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+export default function TodosProveedoresPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedProveedor, setSelectedProveedor] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState("todos")
+
+  // Datos de ejemplo para todos los proveedores
+  const proveedores = [
+    {
+      id: 1,
+      nombre: "Suministros Industriales S.A.",
+      cuit: "30-12345678-9",
+      categoria: "Materiales",
+      estado: "Activo",
+      ultimaCompra: "15/04/2023",
+      montoTotal: "$1,250,000",
+      calificacion: 4.8,
+    },
+    {
+      id: 2,
+      nombre: "Logística Portuaria S.R.L.",
+      cuit: "30-87654321-0",
+      categoria: "Servicios",
+      estado: "Activo",
+      ultimaCompra: "22/03/2023",
+      montoTotal: "$3,780,000",
+      calificacion: 4.5,
+    },
+    {
+      id: 3,
+      nombre: "Innovaciones Marítimas S.A.",
+      cuit: "30-23456789-0",
+      categoria: "Tecnología",
+      estado: "Potencial",
+      fechaContacto: "10/05/2023",
+      origen: "Recomendación",
+      interes: "Alto",
+    },
+    {
+      id: 4,
+      nombre: "Servicios Portuarios Integrales S.R.L.",
+      cuit: "30-34567890-1",
+      categoria: "Servicios",
+      estado: "Potencial",
+      fechaContacto: "05/05/2023",
+      origen: "Feria Comercial",
+      interes: "Medio",
+    },
+    {
+      id: 5,
+      nombre: "Tecnología Marítima S.A.",
+      cuit: "30-56789012-3",
+      categoria: "Tecnología",
+      estado: "Activo",
+      ultimaCompra: "05/05/2023",
+      montoTotal: "$2,150,000",
+      calificacion: 4.9,
+    },
+    {
+      id: 6,
+      nombre: "Seguridad Portuaria S.A.",
+      cuit: "30-90123456-7",
+      categoria: "Seguridad",
+      estado: "Activo",
+      ultimaCompra: "10/04/2023",
+      montoTotal: "$950,000",
+      calificacion: 4.7,
+    },
+    {
+      id: 7,
+      nombre: "Equipamiento Naval Avanzado S.A.",
+      cuit: "30-45678901-2",
+      categoria: "Equipamiento",
+      estado: "Potencial",
+      fechaContacto: "20/04/2023",
+      origen: "Contacto Web",
+      interes: "Alto",
+    },
+    {
+      id: 8,
+      nombre: "Consultores Marítimos Asociados",
+      cuit: "30-56789012-3",
+      categoria: "Consultoría",
+      estado: "Potencial",
+      fechaContacto: "15/04/2023",
+      origen: "LinkedIn",
+      interes: "Bajo",
+    },
+    {
+      id: 9,
+      nombre: "Mantenimiento Naval S.R.L.",
+      cuit: "30-34567890-1",
+      categoria: "Mantenimiento",
+      estado: "Activo",
+      ultimaCompra: "28/03/2023",
+      montoTotal: "$1,850,000",
+      calificacion: 4.6,
+    },
+    {
+      id: 10,
+      nombre: "Soluciones Logísticas Portuarias S.A.",
+      cuit: "30-67890123-4",
+      categoria: "Logística",
+      estado: "Potencial",
+      fechaContacto: "01/05/2023",
+      origen: "Recomendación",
+      interes: "Medio",
+    },
+  ]
+
+  const filteredProveedores = proveedores.filter((proveedor) => {
+    const matchesSearch =
+      proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      proveedor.cuit.includes(searchTerm) ||
+      proveedor.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+
+    if (activeTab === "todos") return matchesSearch
+    if (activeTab === "activos") return matchesSearch && proveedor.estado === "Activo"
+    if (activeTab === "potenciales") return matchesSearch && proveedor.estado === "Potencial"
+    return matchesSearch
+  })
+
+  const handleViewDetails = (proveedor: any) => {
+    setSelectedProveedor(proveedor)
+  }
+
+  return (
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Todos los Proveedores</h1>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Filter className="h-4 w-4 mr-2" />
+            Filtros
+          </Button>
+          <Button variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
+        </div>
+      </div>
+
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="relative mb-4">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre, CUIT o categoría..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant={activeTab === "todos" ? "default" : "outline"}
+              onClick={() => setActiveTab("todos")}
+              className="flex-1"
+            >
+              Todos
+            </Button>
+            <Button
+              variant={activeTab === "activos" ? "default" : "outline"}
+              onClick={() => setActiveTab("activos")}
+              className="flex-1"
+            >
+              Activos
+            </Button>
+            <Button
+              variant={activeTab === "potenciales" ? "default" : "outline"}
+              onClick={() => setActiveTab("potenciales")}
+              className="flex-1"
+            >
+              Potenciales
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>Listado de Proveedores</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4">Nombre</th>
+                  <th className="text-left py-3 px-4">CUIT</th>
+                  <th className="text-left py-3 px-4">Categoría</th>
+                  <th className="text-left py-3 px-4">Estado</th>
+                  <th className="text-left py-3 px-4">Información</th>
+                  <th className="text-center py-3 px-4">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProveedores.map((proveedor) => (
+                  <tr key={proveedor.id} className="border-b hover:bg-muted/50">
+                    <td className="py-3 px-4">{proveedor.nombre}</td>
+                    <td className="py-3 px-4">{proveedor.cuit}</td>
+                    <td className="py-3 px-4">{proveedor.categoria}</td>
+                    <td className="py-3 px-4">
+                      <Badge
+                        variant="outline"
+                        className={`${
+                          proveedor.estado === "Activo" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                        } hover:bg-opacity-100`}
+                      >
+                        {proveedor.estado}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      {proveedor.estado === "Activo" ? (
+                        <span>Última compra: {proveedor.ultimaCompra}</span>
+                      ) : (
+                        <span>Contactado: {proveedor.fechaContacto}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleViewDetails(proveedor)}
+                              className="h-8 w-8"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>Detalle del Proveedor</DialogTitle>
+                            </DialogHeader>
+                            {selectedProveedor && (
+                              <Tabs defaultValue="general" className="mt-4">
+                                <TabsList className="grid w-full grid-cols-3">
+                                  <TabsTrigger value="general">Información General</TabsTrigger>
+                                  <TabsTrigger value="historial">
+                                    {selectedProveedor.estado === "Activo" ? "Historial" : "Seguimiento"}
+                                  </TabsTrigger>
+                                  <TabsTrigger value="contactos">Contactos</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="general" className="mt-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <h3 className="font-semibold">Nombre</h3>
+                                      <p>{selectedProveedor.nombre}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">CUIT</h3>
+                                      <p>{selectedProveedor.cuit}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">Categoría</h3>
+                                      <p>{selectedProveedor.categoria}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">Estado</h3>
+                                      <Badge
+                                        variant="outline"
+                                        className={`${
+                                          selectedProveedor.estado === "Activo"
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-blue-100 text-blue-800"
+                                        }`}
+                                      >
+                                        {selectedProveedor.estado}
+                                      </Badge>
+                                    </div>
+                                    {selectedProveedor.estado === "Activo" ? (
+                                      <>
+                                        <div>
+                                          <h3 className="font-semibold">Última Compra</h3>
+                                          <p>{selectedProveedor.ultimaCompra}</p>
+                                        </div>
+                                        <div>
+                                          <h3 className="font-semibold">Monto Total</h3>
+                                          <p>{selectedProveedor.montoTotal}</p>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div>
+                                          <h3 className="font-semibold">Fecha de Contacto</h3>
+                                          <p>{selectedProveedor.fechaContacto}</p>
+                                        </div>
+                                        <div>
+                                          <h3 className="font-semibold">Origen</h3>
+                                          <p>{selectedProveedor.origen}</p>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </TabsContent>
+                                <TabsContent value="historial" className="mt-4">
+                                  <p className="text-center py-4">
+                                    {selectedProveedor.estado === "Activo"
+                                      ? "Historial de compras en desarrollo"
+                                      : "Seguimiento en desarrollo"}
+                                  </p>
+                                </TabsContent>
+                                <TabsContent value="contactos" className="mt-4">
+                                  <p className="text-center py-4">Contactos en desarrollo</p>
+                                </TabsContent>
+                              </Tabs>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {proveedor.estado === "Activo" ? (
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500">
+                            <UserCheck className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

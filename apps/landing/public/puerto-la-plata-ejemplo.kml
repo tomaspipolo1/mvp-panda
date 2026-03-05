@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Puerto La Plata - Puntos de Interés</name>
+    <description>Principales instalaciones y servicios del Puerto La Plata</description>
+    
+    <Style id="terminal-style">
+      <IconStyle>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>
+        </Icon>
+        <scale>1.2</scale>
+      </IconStyle>
+      <LabelStyle>
+        <color>ff0000ff</color>
+        <scale>1.1</scale>
+      </LabelStyle>
+    </Style>
+    
+    <Style id="zona-franca-style">
+      <IconStyle>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/placemark_square.png</href>
+        </Icon>
+        <scale>1.2</scale>
+        <color>ff00ff00</color>
+      </IconStyle>
+    </Style>
+    
+    <Style id="astillero-style">
+      <IconStyle>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/sailing.png</href>
+        </Icon>
+        <scale>1.2</scale>
+      </IconStyle>
+    </Style>
+
+    <Folder>
+      <name>Terminales</name>
+      <description>Terminales de carga del puerto</description>
+      
+      <Placemark>
+        <name>Terminal de Contenedores TCLP</name>
+        <description><![CDATA[
+          <b>Terminal de Contenedores La Plata</b><br/>
+          Operador principal de contenedores y carga general<br/>
+          <b>Superficie:</b> 15.000 m²<br/>
+          <b>Servicios:</b> Contenedores, Carga general, Almacenamiento<br/>
+          <b>Contacto:</b> tclp@puertolaplata.com
+        ]]></description>
+        <styleUrl>#terminal-style</styleUrl>
+        <Point>
+          <coordinates>-57.8784,-34.8738,0</coordinates>
+        </Point>
+      </Placemark>
+      
+      <Placemark>
+        <name>Terminal de Graneles Sólidos</name>
+        <description><![CDATA[
+          <b>Terminal de Graneles Sólidos</b><br/>
+          Especializada en graneles sólidos y minerales<br/>
+          <b>Superficie:</b> 8.000 m²<br/>
+          <b>Servicios:</b> Graneles sólidos, Minerales, Cereales<br/>
+          <b>Contacto:</b> graneles@puertolaplata.com
+        ]]></description>
+        <styleUrl>#terminal-style</styleUrl>
+        <Point>
+          <coordinates>-57.8764,-34.8728,0</coordinates>
+        </Point>
+      </Placemark>
+      
+      <Placemark>
+        <name>Terminal de Hidrocarburos</name>
+        <description><![CDATA[
+          <b>Terminal de Hidrocarburos</b><br/>
+          Especializada en productos petrolíferos y químicos<br/>
+          <b>Superficie:</b> 10.000 m²<br/>
+          <b>Servicios:</b> Hidrocarburos, Productos químicos, Combustibles<br/>
+          <b>Contacto:</b> hidrocarburos@puertolaplata.com
+        ]]></description>
+        <styleUrl>#terminal-style</styleUrl>
+        <Point>
+          <coordinates>-57.8794,-34.8748,0</coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+
+    <Folder>
+      <name>Zonas Especiales</name>
+      <description>Zonas francas y astilleros</description>
+      
+      <Placemark>
+        <name>Zona Franca La Plata</name>
+        <description><![CDATA[
+          <b>Zona Franca La Plata</b><br/>
+          Área de libre comercio con beneficios fiscales<br/>
+          <b>Superficie:</b> 50.000 m²<br/>
+          <b>Servicios:</b> Almacenamiento, Transformación, Comercialización<br/>
+          <b>Contacto:</b> zonafranca@puertolaplata.com
+        ]]></description>
+        <styleUrl>#zona-franca-style</styleUrl>
+        <Point>
+          <coordinates>-57.8774,-34.8758,0</coordinates>
+        </Point>
+      </Placemark>
+      
+      <Placemark>
+        <name>Astillero Río de la Plata</name>
+        <description><![CDATA[
+          <b>Astillero Río de la Plata</b><br/>
+          Reparaciones navales y construcción de embarcaciones<br/>
+          <b>Superficie:</b> 12.000 m²<br/>
+          <b>Servicios:</b> Reparaciones, Construcción, Mantenimiento<br/>
+          <b>Contacto:</b> astillero@puertolaplata.com
+        ]]></description>
+        <styleUrl>#astillero-style</styleUrl>
+        <Point>
+          <coordinates>-57.8754,-34.8718,0</coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+
+    <Folder>
+      <name>Servicios</name>
+      <description>Servicios auxiliares del puerto</description>
+      
+      <Placemark>
+        <name>Centro de Servicios Portuarios</name>
+        <description><![CDATA[
+          <b>Centro de Servicios Portuarios</b><br/>
+          Servicios auxiliares y de apoyo a la navegación<br/>
+          <b>Superficie:</b> 3.000 m²<br/>
+          <b>Servicios:</b> Remolque, Bunkering, Asistencia técnica<br/>
+          <b>Contacto:</b> servicios@puertolaplata.com
+        ]]></description>
+        <styleUrl>#terminal-style</styleUrl>
+        <Point>
+          <coordinates>-57.8774,-34.8738,0</coordinates>
+        </Point>
+      </Placemark>
+      
+      <Placemark>
+        <name>Operador Logístico Multimodal</name>
+        <description><![CDATA[
+          <b>Operador Logístico Multimodal</b><br/>
+          Servicios de logística integrada y distribución<br/>
+          <b>Superficie:</b> 6.000 m²<br/>
+          <b>Servicios:</b> Logística, Distribución, Almacenamiento<br/>
+          <b>Contacto:</b> logistica@puertolaplata.com
+        ]]></description>
+        <styleUrl>#terminal-style</styleUrl>
+        <Point>
+          <coordinates>-57.8764,-34.8748,0</coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+
+    <Folder>
+      <name>Administración</name>
+      <description>Entes administrativos</description>
+      
+      <Placemark>
+        <name>Consorcio de Gestión del Puerto La Plata</name>
+        <description><![CDATA[
+          <b>Consorcio de Gestión del Puerto La Plata</b><br/>
+          Ente administrador del puerto y coordinador de operaciones<br/>
+          <b>Superficie:</b> Toda el área portuaria<br/>
+          <b>Servicios:</b> Administración, Coordinación, Seguridad<br/>
+          <b>Contacto:</b> info@puertolaplata.com
+        ]]></description>
+        <styleUrl>#terminal-style</styleUrl>
+        <Point>
+          <coordinates>-57.8774,-34.8728,0</coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>

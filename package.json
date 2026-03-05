@@ -1,0 +1,19 @@
+{
+  "name": "mvp-panda",
+  "private": true,
+  "packageManager": "pnpm@10.12.2",
+  "scripts": {
+    "dev": "concurrently \"pnpm dev:landing\" \"pnpm dev:portal\"",
+    "dev:landing": "pnpm --dir apps/landing dev --port 3000",
+    "dev:portal": "pnpm --dir apps/portal dev --port 3001",
+    "build": "pnpm -r build",
+    "build:landing": "pnpm --dir apps/landing build",
+    "build:portal": "pnpm --dir apps/portal build",
+    "lint": "pnpm -r lint",
+    "start:landing": "pnpm --dir apps/landing start --port 3000",
+    "start:portal": "pnpm --dir apps/portal start --port 3001"
+  },
+  "devDependencies": {
+    "concurrently": "latest"
+  }
+}

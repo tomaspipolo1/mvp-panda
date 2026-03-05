@@ -1,0 +1,253 @@
+"use client"
+
+import { useState } from "react"
+import { Search, Filter, Download, Eye, Edit, UserCheck } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+export default function ProveedoresPotencialesPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedProveedor, setSelectedProveedor] = useState<any>(null)
+
+  // Datos de ejemplo para proveedores potenciales
+  const proveedoresPotenciales = [
+    {
+      id: 1,
+      nombre: "Innovaciones Marítimas S.A.",
+      cuit: "30-23456789-0",
+      categoria: "Tecnología",
+      estado: "Potencial",
+      fechaContacto: "10/05/2023",
+      origen: "Recomendación",
+      interes: "Alto",
+    },
+    {
+      id: 2,
+      nombre: "Servicios Portuarios Integrales S.R.L.",
+      cuit: "30-34567890-1",
+      categoria: "Servicios",
+      estado: "Potencial",
+      fechaContacto: "05/05/2023",
+      origen: "Feria Comercial",
+      interes: "Medio",
+    },
+    {
+      id: 3,
+      nombre: "Equipamiento Naval Avanzado S.A.",
+      cuit: "30-45678901-2",
+      categoria: "Equipamiento",
+      estado: "Potencial",
+      fechaContacto: "20/04/2023",
+      origen: "Contacto Web",
+      interes: "Alto",
+    },
+    {
+      id: 4,
+      nombre: "Consultores Marítimos Asociados",
+      cuit: "30-56789012-3",
+      categoria: "Consultoría",
+      estado: "Potencial",
+      fechaContacto: "15/04/2023",
+      origen: "LinkedIn",
+      interes: "Bajo",
+    },
+    {
+      id: 5,
+      nombre: "Soluciones Logísticas Portuarias S.A.",
+      cuit: "30-67890123-4",
+      categoria: "Logística",
+      estado: "Potencial",
+      fechaContacto: "01/05/2023",
+      origen: "Recomendación",
+      interes: "Medio",
+    },
+  ]
+
+  const filteredProveedores = proveedoresPotenciales.filter(
+    (proveedor) =>
+      proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      proveedor.cuit.includes(searchTerm) ||
+      proveedor.categoria.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const handleViewDetails = (proveedor: any) => {
+    setSelectedProveedor(proveedor)
+  }
+
+  return (
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Proveedores Potenciales</h1>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Filter className="h-4 w-4 mr-2" />
+            Filtros
+          </Button>
+          <Button variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
+        </div>
+      </div>
+
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre, CUIT o categoría..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>Listado de Proveedores Potenciales</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4">Nombre</th>
+                  <th className="text-left py-3 px-4">CUIT</th>
+                  <th className="text-left py-3 px-4">Categoría</th>
+                  <th className="text-left py-3 px-4">Estado</th>
+                  <th className="text-left py-3 px-4">Fecha Contacto</th>
+                  <th className="text-left py-3 px-4">Origen</th>
+                  <th className="text-left py-3 px-4">Interés</th>
+                  <th className="text-center py-3 px-4">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProveedores.map((proveedor) => (
+                  <tr key={proveedor.id} className="border-b hover:bg-muted/50">
+                    <td className="py-3 px-4">{proveedor.nombre}</td>
+                    <td className="py-3 px-4">{proveedor.cuit}</td>
+                    <td className="py-3 px-4">{proveedor.categoria}</td>
+                    <td className="py-3 px-4">
+                      <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                        {proveedor.estado}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">{proveedor.fechaContacto}</td>
+                    <td className="py-3 px-4">{proveedor.origen}</td>
+                    <td className="py-3 px-4">
+                      <Badge
+                        variant="outline"
+                        className={`${
+                          proveedor.interes === "Alto"
+                            ? "bg-green-100 text-green-800"
+                            : proveedor.interes === "Medio"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        } hover:bg-opacity-100`}
+                      >
+                        {proveedor.interes}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleViewDetails(proveedor)}
+                              className="h-8 w-8"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>Detalle del Proveedor Potencial</DialogTitle>
+                            </DialogHeader>
+                            {selectedProveedor && (
+                              <Tabs defaultValue="general" className="mt-4">
+                                <TabsList className="grid w-full grid-cols-3">
+                                  <TabsTrigger value="general">Información General</TabsTrigger>
+                                  <TabsTrigger value="contactos">Contactos</TabsTrigger>
+                                  <TabsTrigger value="seguimiento">Seguimiento</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="general" className="mt-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <h3 className="font-semibold">Nombre</h3>
+                                      <p>{selectedProveedor.nombre}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">CUIT</h3>
+                                      <p>{selectedProveedor.cuit}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">Categoría</h3>
+                                      <p>{selectedProveedor.categoria}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">Estado</h3>
+                                      <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                                        {selectedProveedor.estado}
+                                      </Badge>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">Fecha de Contacto</h3>
+                                      <p>{selectedProveedor.fechaContacto}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">Origen</h3>
+                                      <p>{selectedProveedor.origen}</p>
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold">Nivel de Interés</h3>
+                                      <Badge
+                                        variant="outline"
+                                        className={`${
+                                          selectedProveedor.interes === "Alto"
+                                            ? "bg-green-100 text-green-800"
+                                            : selectedProveedor.interes === "Medio"
+                                              ? "bg-yellow-100 text-yellow-800"
+                                              : "bg-red-100 text-red-800"
+                                        }`}
+                                      >
+                                        {selectedProveedor.interes}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </TabsContent>
+                                <TabsContent value="contactos" className="mt-4">
+                                  <p className="text-center py-4">Contactos en desarrollo</p>
+                                </TabsContent>
+                                <TabsContent value="seguimiento" className="mt-4">
+                                  <p className="text-center py-4">Seguimiento en desarrollo</p>
+                                </TabsContent>
+                              </Tabs>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500">
+                          <UserCheck className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
