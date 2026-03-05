@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  assetPrefix: "/portal",
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
 type AuthContextType = {
   isLoggedIn: boolean
@@ -13,8 +13,30 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false) // Por defecto sin sesión
 
-  const login = () => setIsLoggedIn(true)
-  const logout = () => setIsLoggedIn(false)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("landing-is-logged-in")
+      if (saved === "true") {
+        setIsLoggedIn(true)
+      }
+    } catch {
+      // no-op en entornos sin storage
+    }
+  }, [])
+
+  const login = () => {
+    setIsLoggedIn(true)
+    try {
+      localStorage.setItem("landing-is-logged-in", "true")
+    } catch {}
+  }
+
+  const logout = () => {
+    setIsLoggedIn(false)
+    try {
+      localStorage.removeItem("landing-is-logged-in")
+    } catch {}
+  }
 
   return <AuthContext.Provider value={{ isLoggedIn, login, logout }}>{children}</AuthContext.Provider>
 }
