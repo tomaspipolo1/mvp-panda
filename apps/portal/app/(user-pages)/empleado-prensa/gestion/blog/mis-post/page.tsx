@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { toPortalPath } from "@/lib/portal-path"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -103,7 +104,7 @@ export default function MisPostPage() {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-plp-dark">Mis Posts</h1>
-          <Link href="/empleado-prensa/gestion/blog/nuevo-post">
+          <Link href={toPortalPath("/empleado-prensa/gestion/blog/nuevo-post")}>
             <Button className="bg-[#001A57] hover:bg-[#00133f] text-white rounded-md flex items-center gap-2">
               <PlusIcon className="h-4 w-4" />
               Nuevo Post
@@ -135,7 +136,7 @@ export default function MisPostPage() {
           <TabsContent value="publicados" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPosts.map((post) => (
-                <Link href={`/empleado-prensa/gestion/blog/mis-post/${post.id}`} key={post.id}>
+                <Link href={toPortalPath(`/empleado-prensa/gestion/blog/mis-post/${post.id}`)} key={post.id}>
                   <Card className="h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                     <CardHeader className="p-0">
                       <div className="relative h-48 w-full">
@@ -209,7 +210,7 @@ export default function MisPostPage() {
           <TabsContent value="borradores" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPosts.map((post) => (
-                <Link href={`/empleado-prensa/gestion/blog/mis-post/${post.id}`} key={post.id}>
+                <Link href={toPortalPath(`/empleado-prensa/gestion/blog/mis-post/${post.id}`)} key={post.id}>
                   <Card className="h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                     <CardHeader className="p-0">
                       <div className="relative h-48 w-full">
@@ -261,7 +262,7 @@ export default function MisPostPage() {
           <TabsContent value="archivados" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPosts.map((post) => (
-                <Link href={`/empleado-prensa/gestion/blog/mis-post/${post.id}`} key={post.id}>
+                <Link href={toPortalPath(`/empleado-prensa/gestion/blog/mis-post/${post.id}`)} key={post.id}>
                   <Card className="h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                     <CardHeader className="p-0">
                       <div className="relative h-48 w-full">

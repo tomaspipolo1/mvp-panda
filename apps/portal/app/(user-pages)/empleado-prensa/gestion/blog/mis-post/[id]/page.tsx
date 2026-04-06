@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ArchiveIcon, CalendarIcon, ChevronLeftIcon, PrinterIcon, Trash2Icon } from "lucide-react"
 import Link from "next/link"
+import { toPortalPath } from "@/lib/portal-path"
 import { PencilIcon } from "lucide-react"
 
 // Datos de ejemplo para los posts
@@ -164,7 +165,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   const handleArchive = () => {
     // En una implementación real, aquí se actualizaría el estado del post a "archivado"
     alert(`Post "${post.title}" archivado correctamente`)
-    router.push("/empleado-prensa/gestion/blog/mis-post")
+    router.push(toPortalPath("/empleado-prensa/gestion/blog/mis-post"))
   }
 
   return (
@@ -179,7 +180,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
 
         <div className="flex gap-2">
           <Button variant="outline" className="flex items-center gap-1" asChild>
-            <Link href={`/empleado-prensa/gestion/blog/editar-post/${params.id}`}>
+            <Link href={toPortalPath(`/empleado-prensa/gestion/blog/editar-post/${params.id}`)}>
               <PencilIcon className="h-4 w-4" />
               Editar
             </Link>

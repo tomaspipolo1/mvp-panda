@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { toPortalPath } from "@/lib/portal-path"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -108,7 +109,7 @@ export default function NuevoPostPage() {
       })
 
       // Redirigir a la página de posts
-      router.push("/empleado-prensa/gestion/blog/mis-post")
+      router.push(toPortalPath("/empleado-prensa/gestion/blog/mis-post"))
     } else {
       // Para publicación, mostrar el modal de carga
       setIsPublishing(true)
@@ -133,7 +134,7 @@ export default function NuevoPostPage() {
         setTimeout(() => {
           setIsPublishing(false)
           setPublishingStatus(null)
-          router.push("/empleado-prensa/gestion/blog/mis-post")
+          router.push(toPortalPath("/empleado-prensa/gestion/blog/mis-post"))
         }, 2000)
       }, 2000)
     }
@@ -154,7 +155,7 @@ export default function NuevoPostPage() {
         <Button
           variant="ghost"
           className="flex items-center text-gray-600"
-          onClick={() => router.push("/empleado-prensa/gestion/blog/mis-post")}
+          onClick={() => router.push(toPortalPath("/empleado-prensa/gestion/blog/mis-post"))}
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
           Volver a Mis Posts

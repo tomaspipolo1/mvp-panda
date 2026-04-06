@@ -1,4 +1,6 @@
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { toPortalPath } from "@/lib/portal-path"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,9 +11,14 @@ export default function BlogPage() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-plp-dark">Blog y Noticias</h1>
-        <Button className="bg-plp-primary hover:bg-plp-dark">
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Nueva Publicación
+        <Button className="bg-plp-primary hover:bg-plp-dark" asChild>
+          <Link
+            href={toPortalPath("/empleado-prensa/gestion/blog/nuevo-post")}
+            className="inline-flex items-center"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Nueva Publicación
+          </Link>
         </Button>
       </div>
 

@@ -5,6 +5,7 @@ import { StatCard } from "@/components/empleados/stat-card"
 import { QuickActions } from "@/components/empleados/quick-actions"
 import { FeedSection } from "@/components/empleados/feed-section"
 import { Newspaper, Calendar, ClipboardList, CreditCard, Clock, ImageIcon } from "lucide-react"
+import { toPortalPath } from "@/lib/portal-path"
 
 const actividadStats = [
   {
@@ -49,10 +50,14 @@ const infoPersonalStats = [
 ]
 
 const quickActions = [
-  { label: "Calendario", icon: Calendar },
-  { label: "Nuevo post", icon: Newspaper },
-  { label: "Galería", icon: ImageIcon },
-  { label: "Mis gestiones", icon: ClipboardList },
+  { label: "Calendario", icon: Calendar, href: toPortalPath("/empleado-prensa/gestion/eventos/calendario") },
+  { label: "Nuevo post", icon: Newspaper, href: toPortalPath("/empleado-prensa/gestion/blog/nuevo-post") },
+  { label: "Galería", icon: ImageIcon, href: toPortalPath("/empleado-prensa/gestion/galeria-imagenes") },
+  {
+    label: "Mis gestiones",
+    icon: ClipboardList,
+    href: toPortalPath("/empleado-prensa/gestion/solicitudes/mis-solicitudes"),
+  },
 ]
 
 const eventos = [
