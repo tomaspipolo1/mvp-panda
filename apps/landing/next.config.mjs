@@ -49,11 +49,11 @@ const nextConfig = {
     return [
       {
         source: "/portal",
-        destination: `${portalOrigin}`,
+        destination: `${portalOrigin}/portal`,
       },
       {
         source: "/portal/:path*",
-        destination: `${portalOrigin}/:path*`,
+        destination: `${portalOrigin}/portal/:path*`,
       },
     ]
   },

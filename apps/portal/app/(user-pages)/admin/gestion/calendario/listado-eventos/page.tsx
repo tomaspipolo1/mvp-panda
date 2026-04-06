@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Search, Filter, Calendar as CalendarIconLucide, Clock, MapPin, Users, Eye, MoreVertical, Edit, X, Globe, Plus } from "lucide-react"
 import { eventosData } from "../[id]/page"
 import Link from "next/link"
+import { withBasePath } from "@/lib/with-base-path"
 import CrearEventoPublicoModal from "@/components/eventos/crear-evento-publico-modal"
 
 // Tipos de datos compatibles con el array de eventos
@@ -132,7 +133,7 @@ export default function ListadoEventosPage() {
   // Manejar ver detalle
   const handleVerDetalle = (evento: Evento) => {
     // Navegar a la página de detalle del evento
-    window.location.href = `/admin/gestion/calendario/${evento.id}`
+    window.location.href = withBasePath(`/admin/gestion/calendario/${evento.id}`)
   }
 
   // Manejar editar evento

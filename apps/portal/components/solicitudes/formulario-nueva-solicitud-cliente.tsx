@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
+import { withBasePath } from "@/lib/with-base-path"
 import { format, parse, addMonths, subMonths, isValid } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -894,7 +895,7 @@ export function FormularioNuevaSolicitudCliente() {
                         <Button
           type="button"
           variant="outline"
-          onClick={() => window.location.href = "/cliente/gestion/solicitudes/mis-solicitudes"}
+          onClick={() => (window.location.href = withBasePath("/cliente/gestion/solicitudes/mis-solicitudes"))}
         >
           Cancelar
                         </Button>

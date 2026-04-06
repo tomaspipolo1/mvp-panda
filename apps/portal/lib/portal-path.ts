@@ -1,4 +1,4 @@
-const PORTAL_BASE_PATH = "/portal"
+export const PORTAL_BASE_PATH = "/portal"
 
 export function normalizePortalPath(pathname: string): string {
   if (!pathname) return "/"
@@ -9,13 +9,14 @@ export function normalizePortalPath(pathname: string): string {
   return pathname
 }
 
+/** Rutas para `Link` y `router.*`: sin prefijo; Next aplica `basePath` en next.config. */
 export function toPortalPath(pathname: string): string {
   const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`
-  if (normalized === "/") return PORTAL_BASE_PATH
-  if (normalized.startsWith(`${PORTAL_BASE_PATH}/`) || normalized === PORTAL_BASE_PATH) {
-    return normalized
+  if (normalized === PORTAL_BASE_PATH) return "/"
+  if (normalized.startsWith(`${PORTAL_BASE_PATH}/`)) {
+    return normalized.slice(PORTAL_BASE_PATH.length) || "/"
   }
-  return `${PORTAL_BASE_PATH}${normalized}`
+  return normalized
 }
 
 export function toPortalAssetPath(assetPath: string): string {
