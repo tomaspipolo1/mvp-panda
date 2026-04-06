@@ -68,12 +68,13 @@ export default function UserPagesLayout({
 
   const breadcrumbs = useMemo(() => {
     if (!pathname) return []
-    const segments = pathname.split("/").filter(Boolean)
+    const norm = normalizePortalPath(pathname)
+    const segments = norm.split("/").filter(Boolean)
     const trail = [{ href: toPortalPath("/"), label: "Home" }]
     let accumulator = ""
     segments.forEach((seg) => {
       accumulator += `/${seg}`
-      trail.push({ href: accumulator, label: formatSegment(seg) })
+      trail.push({ href: toPortalPath(accumulator), label: formatSegment(seg) })
     })
     return trail
   }, [pathname])

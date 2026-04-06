@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ComentarioLicitacionModal } from "@/components/licitaciones/comentario-licitacion-modal"
-import { withBasePath } from "@/lib/with-base-path"
+import { toPortalPath } from "@/lib/portal-path"
 
 interface LicitacionDisponible {
   id: string
@@ -110,7 +110,7 @@ export function TablaLicitacionesDisponibles({ licitaciones }: TablaLicitaciones
   }
 
   const handleVerDetalle = (licitacionId: string) => {
-    window.location.href = withBasePath(`/proveedor/gestion/licitaciones/nueva-inscripcion/${licitacionId}`)
+    window.location.href = toPortalPath(`/proveedor/gestion/licitaciones/nueva-inscripcion/${licitacionId}`)
   }
 
   const handleInscribirse = (licitacionId: string) => {
