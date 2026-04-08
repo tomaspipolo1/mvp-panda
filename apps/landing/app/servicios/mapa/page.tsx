@@ -4,18 +4,46 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import WorkingGoogleMap from "@/components/working-google-map"
-import MapFilters, { MAP_FILTERS, type MapFilterId } from "@/components/map-filters"
+import MapFilters, { MAP_FILTERS, type MapFilterId, type MapFilterItemOption } from "@/components/map-filters"
 import { 
-  MapPin,
-  ExternalLink,
-  Filter,
-  Download,
   FileText
 } from "lucide-react"
 import Link from "next/link"
 
 export default function MapaInteractivo() {
   const [selectedFilters, setSelectedFilters] = useState<MapFilterId[]>(MAP_FILTERS.map((filter) => filter.id))
+  const [selectedItemKeys, setSelectedItemKeys] = useState<string[]>([])
+  const [availableItemsByCategory, setAvailableItemsByCategory] = useState<Partial<Record<MapFilterId, MapFilterItemOption[]>>>({})
+
+  const toggleItemKey = (itemKey: string) => {
+    setSelectedItemKeys((current) =>
+      current.includes(itemKey) ? current.filter((value) => value !== itemKey) : [...current, itemKey],
+    )
+  }
+
+  const toggleCategoryItems = (filterId: MapFilterId, itemKeys: string[]) => {
+    if (itemKeys.length === 0) {
+      setSelectedFilters((currentFilters) =>
+        currentFilters.includes(filterId)
+          ? currentFilters.filter((value) => value !== filterId)
+          : [...currentFilters, filterId],
+      )
+      return
+    }
+
+    const allItemsSelected = itemKeys.every((itemKey) => selectedItemKeys.includes(itemKey))
+
+    if (allItemsSelected) {
+      setSelectedFilters((currentFilters) => currentFilters.filter((value) => value !== filterId))
+      setSelectedItemKeys((currentKeys) => currentKeys.filter((itemKey) => !itemKeys.includes(itemKey)))
+      return
+    }
+
+    setSelectedFilters((currentFilters) =>
+      currentFilters.includes(filterId) ? currentFilters : [...currentFilters, filterId],
+    )
+    setSelectedItemKeys((currentKeys) => Array.from(new Set([...currentKeys, ...itemKeys])))
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -34,22 +62,29 @@ export default function MapaInteractivo() {
           </div>
         </section>
 
-        {/* Filtros */}
-        <section className="mb-8">
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Filter className="h-5 w-5 text-plp-primary" />
-              <h3 className="text-lg font-semibold text-plp-primary">Filtrar capas del KMZ</h3>
-            </div>
-            <MapFilters selectedFilters={selectedFilters} onChange={setSelectedFilters} />
-          </Card>
-        </section>
-
-        {/* Mapa de Google Maps con KML */}
+        {/* Mapa + filtros */}
         <section className="mb-12">
-          <Card className="p-4">
-            <WorkingGoogleMap activeFilters={selectedFilters} />
-          </Card>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,2.1fr)_360px]">
+            <Card className="p-4">
+              <WorkingGoogleMap
+                activeFilters={selectedFilters}
+                activeItemKeys={selectedItemKeys}
+                onCatalogChange={setAvailableItemsByCategory}
+                height="620px"
+              />
+            </Card>
+
+            <Card className="h-[800px] overflow-hidden p-5 xl:sticky xl:top-24">
+              <MapFilters
+                selectedFilters={selectedFilters}
+                onChange={setSelectedFilters}
+                availableItemsByCategory={availableItemsByCategory}
+                selectedItemKeys={selectedItemKeys}
+                onToggleItemKey={toggleItemKey}
+                onToggleCategoryItems={toggleCategoryItems}
+              />
+            </Card>
+          </div>
         </section>
 
         
