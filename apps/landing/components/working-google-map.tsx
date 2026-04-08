@@ -66,11 +66,9 @@ export default function WorkingGoogleMap({
   const mapRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState('Iniciando...')
   const [map, setMap] = useState<google.maps.Map | null>(null)
-  const [kmlMethod, setKmlMethod] = useState<'layer' | 'direct'>('direct')
   const [visibleItemsCount, setVisibleItemsCount] = useState(0)
   const mapCreatedRef = useRef(false)
   const directFeaturesRef = useRef<ParsedFeature[]>([])
-  const kmzLayerRef = useRef<google.maps.KmlLayer | null>(null)
   const overlaysRef = useRef<MapOverlay[]>([])
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeatureDetails | null>(null)
 
@@ -86,9 +84,6 @@ export default function WorkingGoogleMap({
   }
 
   const clearMapElements = () => {
-    kmzLayerRef.current?.setMap(null)
-    kmzLayerRef.current = null
-
     overlaysRef.current.forEach((overlay) => overlay.setMap(null))
     overlaysRef.current = []
   }
@@ -307,7 +302,7 @@ export default function WorkingGoogleMap({
     })
 
     setVisibleItemsCount(visibleFeatures.length)
-    setStatus(`✅ Mapa directo + ${visibleFeatures.length} elementos del KMZ`)
+    setStatus(`✅ Mapa + ${visibleFeatures.length} elementos del KMZ`)
 
   }
 
@@ -324,39 +319,6 @@ export default function WorkingGoogleMap({
     focusMapOnFeature(mapInstance, matchingFeature)
   }
 
-  // Método 1: KMZ Layer de Google (requiere servidor público)
-  const loadKMZLayer = (mapInstance: google.maps.Map) => {
-    try {
-      clearMapElements()
-      console.log('WorkingMap: Cargando KMZ con Google Layer...')
-      const kmlLayer = new window.google.maps.KmlLayer({
-        url: `${window.location.origin}${KMZ_PATH}?t=${Date.now()}`, // Cache busting
-        suppressInfoWindows: false,
-        map: mapInstance,
-        preserveViewport: false
-      })
-
-      kmlLayer.addListener('status_changed', () => {
-        const status = kmlLayer.getStatus()
-        console.log('WorkingMap: Estado KMZ Layer:', status)
-        
-        if (status === window.google.maps.KmlLayerStatus.OK) {
-          console.log('WorkingMap: ✅ KMZ Layer cargado')
-          setStatus('✅ Mapa + KMZ Layer funcionando')
-          setVisibleItemsCount(0)
-        } else {
-          console.log('WorkingMap: ⚠️ KMZ Layer status:', status)
-          setStatus('⚠️ KMZ Layer: ' + status)
-        }
-      })
-
-      kmzLayerRef.current = kmlLayer
-    } catch (error) {
-      console.error('WorkingMap: Error cargando KMZ Layer:', error)
-    }
-  }
-
-  // Método 2: Lectura directa del KMZ (descomprime y parsea el KML interno)
   const loadKMZDirect = async (mapInstance: google.maps.Map) => {
     try {
       console.log('WorkingMap: Cargando KMZ directamente...')
@@ -420,13 +382,8 @@ export default function WorkingGoogleMap({
         setMap(mapInstance)
         mapCreatedRef.current = true
 
-        // Cargar KMZ según el método seleccionado
         setTimeout(() => {
-          if (kmlMethod === 'layer') {
-            loadKMZLayer(mapInstance)
-          } else {
-            loadKMZDirect(mapInstance)
-          }
+          loadKMZDirect(mapInstance)
         }, 1000)
 
         return true
@@ -503,20 +460,20 @@ export default function WorkingGoogleMap({
   }, [])
 
   useEffect(() => {
-    if (!map || kmlMethod !== 'direct' || directFeaturesRef.current.length === 0) {
+    if (!map || directFeaturesRef.current.length === 0) {
       return
     }
 
     renderDirectFeatures(map, directFeaturesRef.current, activeFilters, activeItemKeys, selectedFeature)
-  }, [activeFilters, activeItemKeys, kmlMethod, map, selectedFeature])
+  }, [activeFilters, activeItemKeys, map, selectedFeature])
 
   useEffect(() => {
-    if (!map || kmlMethod !== 'direct' || directFeaturesRef.current.length === 0 || !selectedFeature) {
+    if (!map || directFeaturesRef.current.length === 0 || !selectedFeature) {
       return
     }
 
     focusSelectedFeature(map, selectedFeature, directFeaturesRef.current)
-  }, [kmlMethod, map, selectedFeature])
+  }, [map, selectedFeature])
 
   useEffect(() => {
     if (!selectedFeature) return
@@ -532,23 +489,6 @@ export default function WorkingGoogleMap({
     }
   }, [activeFilters, activeItemKeys, selectedFeature])
 
-  // Cambiar método de carga KMZ
-  const toggleKMLMethod = () => {
-    if (!map) return
-
-    const newMethod = kmlMethod === 'layer' ? 'direct' : 'layer'
-    setKmlMethod(newMethod)
-    
-    // Recargar con nuevo método
-    setTimeout(() => {
-      if (newMethod === 'layer') {
-        loadKMZLayer(map)
-      } else {
-        loadKMZDirect(map)
-      }
-    }, 500)
-  }
-
   const canOpenDirections =
     selectedFeature &&
     (selectedFeature.category === 'AC' || selectedFeature.category === 'ST' || selectedFeature.category === 'ED')
@@ -559,34 +499,6 @@ export default function WorkingGoogleMap({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">Mapa de Google Maps con KMZ</h3>
-          <p className="text-sm text-slate-600">Estado: {status}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {map && (
-            <button
-              onClick={toggleKMLMethod}
-              className={`px-3 py-1 text-xs rounded transition-colors ${
-                kmlMethod === 'direct'
-                  ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                  : 'bg-orange-100 text-orange-800 border border-orange-300'
-              }`}
-            >
-              {kmlMethod === 'direct' ? '📋 Lectura directa (KMZ)' : '🌐 Google KMZ Layer'}
-            </button>
-          )}
-          {map && (
-            <div className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600">
-              Puerto La Plata (-34.8738, -57.8774)
-            </div>
-          )}
-        </div>
-      </div>
-      
-      
-      
       <div
         className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-[0_16px_50px_rgba(15,23,42,0.08)]"
         style={{ minHeight: height, height }}
@@ -596,7 +508,7 @@ export default function WorkingGoogleMap({
           className="h-full w-full"
         />
 
-        {kmlMethod === 'direct' && selectedFeature && (
+        {selectedFeature && (
           <>
             <DesktopSelectionPanel
               directionsUrl={googleMapsDirectionsUrl}
@@ -611,28 +523,17 @@ export default function WorkingGoogleMap({
           </>
         )}
       </div>
-      
-      {/* Información de datos cargados */}
-      {visibleItemsCount > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-800">
-                📁 {visibleItemsCount} elementos visibles desde permUso.kmz
-              </p>
-              <p className="text-xs text-slate-600">
-                Método: {kmlMethod === 'direct' ? 'Lectura directa con filtros y geometrías' : 'Google KMZ Layer'}
-              </p>
-            </div>
-            <button
-              onClick={toggleKMLMethod}
-              className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
-            >
-              Cambiar método
-            </button>
+
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-800">Estado: {status}</p>
+            <p className="text-xs text-slate-600">
+              {visibleItemsCount} elementos cargados desde `permUso.kmz`
+            </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

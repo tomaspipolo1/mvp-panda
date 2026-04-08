@@ -120,7 +120,7 @@ export default function MapaInteractivo() {
               />
             </Card>
 
-            <Card className="h-[800px] overflow-hidden p-5 xl:sticky xl:top-24">
+            <Card className="h-[740px] overflow-hidden p-5 xl:sticky xl:top-24">
               <MapFilters
                 selectedFilters={selectedFilters}
                 onChange={setSelectedFilters}
