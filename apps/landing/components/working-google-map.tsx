@@ -2,25 +2,42 @@
 
 import { useEffect, useRef, useState } from 'react'
 import JSZip from 'jszip'
-import { MAP_FILTERS, type MapFilterId, type MapFilterItemOption } from '@/components/map-filters'
+import { icon, type IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import { faAnchor, faBuilding, faPersonMilitaryPointing } from '@fortawesome/free-solid-svg-icons'
+import {
+  DEFAULT_ACTIVE_FILTERS,
+  MAP_FILTERS,
+  MAP_FILTER_COLORS,
+  type MapFilterId,
+  type MapFilterItemOption,
+} from '@/components/map-filters'
 import { Layers3, MapPin, Tag, X } from 'lucide-react'
 
 /// <reference types="google.maps" />
 
 const KMZ_PATH = '/permUso.kmz'
-const DEFAULT_FILTERS = MAP_FILTERS.map((filter) => filter.id)
+const DEFAULT_FILTERS = DEFAULT_ACTIVE_FILTERS
+const ALL_FILTER_IDS = MAP_FILTERS.map((filter) => filter.id)
+const INSTITUTIONAL_BLUE = '#1B1E4A'
 
 const MAP_STYLES: google.maps.MapTypeStyle[] = [
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'landscape.man_made', stylers: [{ color: '#f4f5f1' }] },
-  { featureType: 'landscape.natural', stylers: [{ color: '#eef3ec' }] },
-  { featureType: 'water', stylers: [{ color: '#cfe6ff' }] },
+  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#eef2f6' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#d6dde8' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#c7d2df' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#708099' }] },
+  { featureType: 'landscape.man_made', stylers: [{ color: '#f5f6f8' }] },
+  { featureType: 'landscape.natural', stylers: [{ color: '#edf3ef' }] },
+  { featureType: 'water', stylers: [{ color: '#cfe0ee' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#6b87a2' }] },
+  { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ color: '#f8fafc' }] },
 ]
 
 type GeometryType = 'point' | 'line' | 'polygon'
+type MarkerIconType = 'person' | 'anchor' | 'building'
 
 type ParsedFeature = {
   id: string
@@ -65,15 +82,31 @@ declare global {
   }
 }
 
-const CATEGORY_STYLES: Record<MapFilterId, { strokeColor: string; fillColor: string; iconType?: 'gate' | 'building' }> = {
-  ST: { strokeColor: '#2563eb', fillColor: '#93c5fd' },
-  AC: { strokeColor: '#b45309', fillColor: '#f59e0b', iconType: 'gate' },
-  AR: { strokeColor: '#0f766e', fillColor: '#5eead4' },
-  BA: { strokeColor: '#dc2626', fillColor: '#fca5a5' },
-  PR: { strokeColor: '#6b7280', fillColor: '#d1d5db' },
-  EJ: { strokeColor: '#7c3aed', fillColor: '#c4b5fd' },
-  ED: { strokeColor: '#1d4ed8', fillColor: '#93c5fd', iconType: 'building' },
-  FF: { strokeColor: '#111827', fillColor: '#9ca3af' },
+const CATEGORY_STYLES: Record<
+  MapFilterId,
+  {
+    strokeColor: string
+    selectedStrokeColor: string
+    fillColor: string
+    badgeColor: string
+    iconType?: MarkerIconType
+    pointIconType?: MarkerIconType
+  }
+> = {
+  ST: { ...MAP_FILTER_COLORS.ST, selectedStrokeColor: '#1d4ed8', pointIconType: 'anchor' },
+  AC: { ...MAP_FILTER_COLORS.AC, selectedStrokeColor: '#b45309', iconType: 'person' },
+  AR: { ...MAP_FILTER_COLORS.AR, selectedStrokeColor: '#166534' },
+  BA: { ...MAP_FILTER_COLORS.BA, selectedStrokeColor: '#b91c1c' },
+  PR: { ...MAP_FILTER_COLORS.PR, selectedStrokeColor: '#475569' },
+  EJ: { ...MAP_FILTER_COLORS.EJ, selectedStrokeColor: '#6d28d9' },
+  ED: { ...MAP_FILTER_COLORS.ED, selectedStrokeColor: '#1e40af', iconType: 'building' },
+  FF: { ...MAP_FILTER_COLORS.FF, selectedStrokeColor: '#1e293b' },
+}
+
+const MARKER_ICON_DEFINITIONS: Record<MarkerIconType, IconDefinition> = {
+  person: faPersonMilitaryPointing,
+  anchor: faAnchor,
+  building: faBuilding,
 }
 
 // Solo estas categorias tienen sentido como secuencias de puntos conectadas.
@@ -110,7 +143,7 @@ function extractCategoryId(folderName: string, placemarkName: string): MapFilter
       return 'ST'
     }
 
-    const match = DEFAULT_FILTERS.find((filterId) => candidate === filterId || candidate.startsWith(`${filterId}-`))
+    const match = ALL_FILTER_IDS.find((filterId) => candidate === filterId || candidate.startsWith(`${filterId}-`))
     if (match) {
       return match
     }
@@ -195,7 +228,7 @@ function getFeatureItemKey(feature: ParsedFeature) {
 function buildCatalog(features: ParsedFeature[]): Partial<Record<MapFilterId, MapFilterItemOption[]>> {
   const catalog: Partial<Record<MapFilterId, MapFilterItemOption[]>> = {}
 
-  DEFAULT_FILTERS.forEach((category) => {
+  ALL_FILTER_IDS.forEach((category) => {
     const counts = new Map<string, number>()
 
     features
@@ -221,34 +254,65 @@ function buildCatalog(features: ParsedFeature[]): Partial<Record<MapFilterId, Ma
   return catalog
 }
 
-function createMarkerSvg(iconType: 'gate' | 'building', color: string, isSelected = false) {
-  const strokeWidth = isSelected ? 3 : 2
-  const radius = isSelected ? 17 : 16
-  const iconScale = isSelected ? 1.08 : 1
-  const svg = iconType === 'gate'
-    ? `
+function createDotSvg(color: string, isSelected = false) {
+  const outerStroke = color
+  const innerFill = color
+  const innerRadius = isSelected ? 6.2 : 5.2
+  const outerRadius = isSelected ? 10.5 : 9.2
+  const glow = isSelected ? 0.34 : 0.2
+
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
       <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="17" cy="17" r="${radius}" fill="white" stroke="${color}" stroke-width="${strokeWidth}"/>
-        <g transform="scale(${iconScale}) translate(${isSelected ? '-0.8' : '0'}, ${isSelected ? '-0.8' : '0'})">
-          <path d="M10 23V14L17 10L24 14V23" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M14 23V17H20V23" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+          <filter id="shadow" x="0" y="0" width="34" height="34" filterUnits="userSpaceOnUse">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="${glow}" />
+          </filter>
+        </defs>
+        <g filter="url(#shadow)">
+          <circle cx="17" cy="17" r="${outerRadius}" fill="white" stroke="${outerStroke}" stroke-width="${isSelected ? 3 : 2.4}" />
+          <circle cx="17" cy="17" r="${innerRadius}" fill="${innerFill}" />
         </g>
       </svg>
-    `
-    : `
-      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="17" cy="17" r="${radius}" fill="white" stroke="${color}" stroke-width="${strokeWidth}"/>
-        <g transform="scale(${iconScale}) translate(${isSelected ? '-0.8' : '0'}, ${isSelected ? '-0.8' : '0'})">
-          <path d="M11 24V11H23V24" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M15 15H16M18 15H19M15 18H16M18 18H19" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+    `)}`,
+    scaledSize: new window.google.maps.Size(34, 34),
+    anchor: new window.google.maps.Point(17, 17),
+  }
+}
+
+function createMarkerSvg(iconType: MarkerIconType, color: string, isSelected = false) {
+  const markerSize = 28
+  const markerCenter = markerSize / 2
+  const strokeWidth = isSelected ? 2.2 : 1.4
+  const radius = 12
+  const strokeColor = color
+  const fontAwesomeSvg = icon(MARKER_ICON_DEFINITIONS[iconType], {
+    styles: { color: strokeColor },
+    attributes: {
+      x: iconType === 'person' ? '7' : '8',
+      y: iconType === 'person' ? '7' : '8',
+      width: iconType === 'person' ? '14' : '12',
+      height: iconType === 'person' ? '14' : '12',
+    },
+  }).html.join('')
+  const svg = `
+      <svg width="${markerSize}" height="${markerSize}" viewBox="0 0 ${markerSize} ${markerSize}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="shadow" x="0" y="0" width="${markerSize}" height="${markerSize}" filterUnits="userSpaceOnUse">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="${isSelected ? 0.34 : 0.2}" />
+          </filter>
+        </defs>
+        <g filter="url(#shadow)">
+          <circle cx="${markerCenter}" cy="${markerCenter}" r="${radius}" fill="white" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>
+          ${fontAwesomeSvg}
         </g>
       </svg>
     `
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(34, 34),
-    anchor: new window.google.maps.Point(17, 17),
+    scaledSize: new window.google.maps.Size(markerSize, markerSize),
+    anchor: new window.google.maps.Point(markerCenter, markerCenter),
   }
 }
 
@@ -264,6 +328,7 @@ export default function WorkingGoogleMap({
   const [kmlMethod, setKmlMethod] = useState<'layer' | 'direct'>('direct')
   const [visibleItemsCount, setVisibleItemsCount] = useState(0)
   const mapCreatedRef = useRef(false)
+  const hasInitialViewportRef = useRef(false)
   const directFeaturesRef = useRef<ParsedFeature[]>([])
   const kmzLayerRef = useRef<google.maps.KmlLayer | null>(null)
   const overlaysRef = useRef<MapOverlay[]>([])
@@ -345,19 +410,13 @@ export default function WorkingGoogleMap({
     feature: ParsedFeature,
     color: string,
     isSelected: boolean,
+    iconType?: MarkerIconType,
   ) => {
     const marker = new window.google.maps.Marker({
       position: feature.points[0],
       map: mapInstance,
       title: feature.name,
-      icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
-        scale: feature.category === 'ST' ? (isSelected ? 8 : 6) : (isSelected ? 7 : 5),
-        fillColor: isSelected ? '#f59e0b' : color,
-        fillOpacity: 1,
-        strokeColor: isSelected ? '#1f2937' : '#ffffff',
-        strokeWeight: isSelected ? 3 : 2,
-      },
+      icon: iconType ? createMarkerSvg(iconType, color, isSelected) : createDotSvg(color, isSelected),
       zIndex: isSelected ? 50 : 30,
     })
 
@@ -501,7 +560,11 @@ export default function WorkingGoogleMap({
           position,
           map: mapInstance,
           title: feature.name,
-          icon: createMarkerSvg(style.iconType, style.strokeColor, isSelected),
+          icon: createMarkerSvg(
+            style.iconType,
+            isSelected ? style.selectedStrokeColor : style.strokeColor,
+            isSelected,
+          ),
           zIndex: isSelected ? 50 : undefined,
         })
 
@@ -519,11 +582,11 @@ export default function WorkingGoogleMap({
           const polygon = new window.google.maps.Polygon({
             map: mapInstance,
             paths: ring,
-            strokeColor: isSelected ? '#f59e0b' : style.strokeColor,
+            strokeColor: isSelected ? style.selectedStrokeColor : style.strokeColor,
             strokeOpacity: 1,
-            strokeWeight: isSelected ? 4 : 2,
-            fillColor: isSelected ? style.strokeColor : style.fillColor,
-            fillOpacity: isSelected ? 0.42 : 0.22,
+            strokeWeight: isSelected ? 4 : category === 'AR' ? 2.5 : 2,
+            fillColor: style.fillColor,
+            fillOpacity: isSelected ? (category === 'AR' ? 0.8 : 0.38) : category === 'AR' ? 0.28 : 0.14,
             zIndex: isSelected ? 40 : 20,
           })
 
@@ -541,8 +604,8 @@ export default function WorkingGoogleMap({
         const polyline = new window.google.maps.Polyline({
           map: mapInstance,
           path: feature.points,
-          strokeColor: isSelected ? '#f59e0b' : style.strokeColor,
-          strokeOpacity: 1,
+          strokeColor: isSelected ? style.selectedStrokeColor : style.strokeColor,
+          strokeOpacity: isSelected ? 1 : 0.9,
           strokeWeight: isSelected ? 5 : category === 'EJ' ? 3 : 2,
           zIndex: isSelected ? 40 : 15,
         })
@@ -557,7 +620,13 @@ export default function WorkingGoogleMap({
       }
 
       if (feature.geometryType === 'point' && feature.points.length > 0) {
-        createPointMarker(mapInstance, feature, style.strokeColor, isSelected)
+        createPointMarker(
+          mapInstance,
+          feature,
+          isSelected ? style.selectedStrokeColor : style.strokeColor,
+          isSelected,
+          style.pointIconType,
+        )
         extendBounds(feature.points)
 
         const groupKey = `${category}-${feature.sourceGroup}`
@@ -578,8 +647,8 @@ export default function WorkingGoogleMap({
         const polyline = new window.google.maps.Polyline({
           map: mapInstance,
           path,
-          strokeColor: isSelectedGroup ? '#f59e0b' : style.strokeColor,
-          strokeOpacity: 1,
+          strokeColor: isSelectedGroup ? style.selectedStrokeColor : style.strokeColor,
+          strokeOpacity: isSelectedGroup ? 1 : 0.9,
           strokeWeight: isSelectedGroup ? 5 : category === 'ST' ? 3 : 2,
           zIndex: isSelectedGroup ? 45 : 10,
         })
@@ -610,8 +679,9 @@ export default function WorkingGoogleMap({
     setVisibleItemsCount(visibleFeatures.length)
     setStatus(`✅ Mapa directo + ${visibleFeatures.length} elementos del KMZ`)
 
-    if (!currentSelection && !bounds.isEmpty()) {
+    if (!currentSelection && !bounds.isEmpty() && !hasInitialViewportRef.current) {
       mapInstance.fitBounds(bounds, 48)
+      hasInitialViewportRef.current = true
     }
   }
 
@@ -696,6 +766,7 @@ export default function WorkingGoogleMap({
       console.log('WorkingMap: KML interno parseado, elementos encontrados:', parsedFeatures.length)
 
       directFeaturesRef.current = parsedFeatures
+      hasInitialViewportRef.current = false
       onCatalogChange?.(buildCatalog(parsedFeatures))
       renderDirectFeatures(mapInstance, parsedFeatures, activeFilters, activeItemKeys, selectedFeature)
       
@@ -870,12 +941,20 @@ export default function WorkingGoogleMap({
     }, 500)
   }
 
+  const canOpenDirections =
+    selectedFeature &&
+    (selectedFeature.category === 'AC' || selectedFeature.category === 'ST' || selectedFeature.category === 'ED')
+
+  const googleMapsDirectionsUrl = canOpenDirections
+    ? `https://www.google.com/maps/dir/?api=1&destination=${selectedFeature.position.lat},${selectedFeature.position.lng}&travelmode=driving`
+    : null
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-green-800">Mapa de Google Maps con KMZ</h3>
-          <p className="text-sm text-green-600">Estado: {status}</p>
+          <h3 className="text-lg font-semibold text-slate-900">Mapa de Google Maps con KMZ</h3>
+          <p className="text-sm text-slate-600">Estado: {status}</p>
         </div>
         <div className="flex items-center gap-3">
           {map && (
@@ -891,7 +970,7 @@ export default function WorkingGoogleMap({
             </button>
           )}
           {map && (
-            <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+            <div className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600">
               Puerto La Plata (-34.8738, -57.8774)
             </div>
           )}
@@ -900,19 +979,32 @@ export default function WorkingGoogleMap({
       
       
       
-      <div className="relative overflow-hidden rounded-lg border-2 border-green-300 bg-gray-50" style={{ minHeight: height, height }}>
+      <div
+        className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-[0_16px_50px_rgba(15,23,42,0.08)]"
+        style={{ minHeight: height, height }}
+      >
         <div
           ref={mapRef}
           className="h-full w-full"
         />
 
         {kmlMethod === 'direct' && selectedFeature && (
-          <div className="absolute left-0 top-0 z-10 h-full w-full overflow-y-auto bg-white shadow-2xl md:w-[360px]">
-            <div className="flex items-start justify-between p-4 pb-3" style={{ backgroundColor: '#CAE6FF' }}>
+          <div className="absolute left-0 top-0 z-10 h-full w-full overflow-y-auto border-r border-slate-200 bg-white shadow-2xl md:w-[360px]">
+            <div
+              className="flex items-start justify-between border-b border-white/40 p-4 pb-3"
+              style={{ backgroundColor: '#CAE6FF' }}
+            >
               <div className="pr-4">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#1B1E4A]/70">
+                <span
+                  className="mb-2 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                  style={{
+                    color: INSTITUTIONAL_BLUE,
+                    borderColor: '#1B1E4A33',
+                    backgroundColor: '#FFFFFF',
+                  }}
+                >
                   {selectedFeature.categoryLabel}
-                </p>
+                </span>
                 <h3 className="text-xl font-bold text-[#1B1E4A]">{selectedFeature.label}</h3>
               </div>
               <button
@@ -926,8 +1018,8 @@ export default function WorkingGoogleMap({
             </div>
 
             <div className="space-y-3 p-4 pt-3">
-              <div className="flex items-start gap-3 rounded-lg p-3" style={{ backgroundColor: '#F0F2F9' }}>
-                <div className="rounded-lg p-2" style={{ backgroundColor: '#CAE6FF' }}>
+              <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
+                <div className="rounded-xl p-2" style={{ backgroundColor: '#E0EEFF' }}>
                   <Tag className="h-5 w-5 text-[#1B1E4A]" />
                 </div>
                 <div className="flex-1">
@@ -936,8 +1028,8 @@ export default function WorkingGoogleMap({
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 rounded-lg p-3" style={{ backgroundColor: '#F0F2F9' }}>
-                <div className="rounded-lg p-2" style={{ backgroundColor: '#CAE6FF' }}>
+              <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
+                <div className="rounded-xl p-2" style={{ backgroundColor: '#E0EEFF' }}>
                   <Layers3 className="h-5 w-5 text-[#1B1E4A]" />
                 </div>
                 <div className="flex-1">
@@ -946,8 +1038,8 @@ export default function WorkingGoogleMap({
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 rounded-lg p-3" style={{ backgroundColor: '#F0F2F9' }}>
-                <div className="rounded-lg p-2" style={{ backgroundColor: '#CAE6FF' }}>
+              <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
+                <div className="rounded-xl p-2" style={{ backgroundColor: '#E0EEFF' }}>
                   <MapPin className="h-5 w-5 text-[#1B1E4A]" />
                 </div>
                 <div className="flex-1">
@@ -958,8 +1050,19 @@ export default function WorkingGoogleMap({
                 </div>
               </div>
 
+              {googleMapsDirectionsUrl && (
+                <a
+                  href={googleMapsDirectionsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center rounded-xl bg-[#1B1E4A] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2A2F6B]"
+                >
+                  Ver en Google Maps
+                </a>
+              )}
+
               {selectedFeature.description && (
-                <div className="rounded-lg p-3" style={{ backgroundColor: '#F0F2F9' }}>
+                <div className="rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
                   <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[#1B1E4A]">Detalle</p>
                   <div
                     className="text-sm leading-relaxed text-gray-700"
@@ -975,13 +1078,13 @@ export default function WorkingGoogleMap({
       
       {/* Información de datos cargados */}
       {visibleItemsCount > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-blue-800">
+              <p className="text-sm font-medium text-slate-800">
                 📁 {visibleItemsCount} elementos visibles desde permUso.kmz
               </p>
-              <p className="text-xs text-blue-600">
+              <p className="text-xs text-slate-600">
                 Método: {kmlMethod === 'direct' ? 'Lectura directa con filtros y geometrías' : 'Google KMZ Layer'}
               </p>
             </div>

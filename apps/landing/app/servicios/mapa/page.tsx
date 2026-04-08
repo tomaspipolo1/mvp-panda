@@ -1,19 +1,62 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import WorkingGoogleMap from "@/components/working-google-map"
-import MapFilters, { MAP_FILTERS, type MapFilterId, type MapFilterItemOption } from "@/components/map-filters"
+import MapFilters, {
+  DEFAULT_ACTIVE_FILTERS,
+  type MapFilterId,
+  type MapFilterItemOption,
+} from "@/components/map-filters"
 import { 
   FileText
 } from "lucide-react"
 import Link from "next/link"
 
+function normalizeMapLabel(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim()
+}
+
+function isDefaultExcludedArrendamiento(item: MapFilterItemOption) {
+  const haystack = `${item.label} ${item.name}`
+  const normalized = normalizeMapLabel(haystack)
+  return (
+    item.key === "AR:AR-33" ||
+    normalized.includes("AR 33") ||
+    (normalized.includes("YPF") &&
+      normalized.includes("CANERIA") &&
+      normalized.includes("PETROQUIMICA"))
+  )
+}
+
 export default function MapaInteractivo() {
-  const [selectedFilters, setSelectedFilters] = useState<MapFilterId[]>(MAP_FILTERS.map((filter) => filter.id))
+  const [selectedFilters, setSelectedFilters] = useState<MapFilterId[]>(DEFAULT_ACTIVE_FILTERS)
   const [selectedItemKeys, setSelectedItemKeys] = useState<string[]>([])
   const [availableItemsByCategory, setAvailableItemsByCategory] = useState<Partial<Record<MapFilterId, MapFilterItemOption[]>>>({})
+  const [didInitArrendamientos, setDidInitArrendamientos] = useState(false)
+
+  useEffect(() => {
+    if (didInitArrendamientos) return
+
+    const arrendamientos = availableItemsByCategory.AR || []
+    if (arrendamientos.length === 0) return
+
+    setSelectedItemKeys((current) => {
+      if (current.length > 0) {
+        return current
+      }
+
+      return arrendamientos
+        .filter((item) => !isDefaultExcludedArrendamiento(item))
+        .map((item) => item.key)
+    })
+    setDidInitArrendamientos(true)
+  }, [availableItemsByCategory, didInitArrendamientos])
 
   const toggleItemKey = (itemKey: string) => {
     setSelectedItemKeys((current) =>

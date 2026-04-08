@@ -22,6 +22,17 @@ export const MAP_FILTERS: Array<{
   { id: "FF", label: "Ferrocarriles", shortLabel: "FF", icon: TrainFront },
 ]
 
+export const DEFAULT_ACTIVE_FILTERS: MapFilterId[] = ["ST", "AC", "AR", "ED"]
+export const MAP_FILTER_COLORS: Record<MapFilterId, { strokeColor: string; fillColor: string; badgeColor: string }> = {
+  ST: { strokeColor: "#2563eb", fillColor: "#dbeafe", badgeColor: "#dbeafe" },
+  AC: { strokeColor: "#d97706", fillColor: "#fde7c2", badgeColor: "#fde7c2" },
+  AR: { strokeColor: "#0f766e", fillColor: "#bbf7d0", badgeColor: "#d7f5f1" },
+  BA: { strokeColor: "#dc2626", fillColor: "#fee2e2", badgeColor: "#fee2e2" },
+  PR: { strokeColor: "#64748b", fillColor: "#e2e8f0", badgeColor: "#e2e8f0" },
+  EJ: { strokeColor: "#7c3aed", fillColor: "#ede9fe", badgeColor: "#ede9fe" },
+  ED: { strokeColor: "#1d4ed8", fillColor: "#dbeafe", badgeColor: "#dbeafe" },
+  FF: { strokeColor: "#334155", fillColor: "#e5e7eb", badgeColor: "#e5e7eb" },
+}
 const ALL_FILTERS = MAP_FILTERS.map((filter) => filter.id)
 
 export type MapFilterItemOption = {
@@ -90,6 +101,7 @@ export default function MapFilters({
         {MAP_FILTERS.map((filter) => {
           const isSelected = selectedFilters.includes(filter.id)
           const Icon = filter.icon
+          const palette = MAP_FILTER_COLORS[filter.id]
           const items = availableItemsByCategory[filter.id] || []
           const isExpanded = expandedSet.has(filter.id)
           const itemKeys = items.map((item) => item.key)
@@ -110,15 +122,28 @@ export default function MapFilters({
                 <button
                   type="button"
                   onClick={handleMainToggle}
-                  className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${
+                  className="flex flex-1 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm font-medium transition-colors hover:border-slate-400 hover:bg-slate-50"
+                  style={
                     isSelected || allItemsSelected
-                      ? "border-plp-primary bg-plp-primary text-white"
-                      : "border-gray-300 bg-white text-plp-gray-700 hover:border-plp-primary hover:text-plp-primary"
-                  }`}
+                      ? {
+                          borderColor: palette.strokeColor,
+                          backgroundColor: palette.strokeColor,
+                          color: "#ffffff",
+                        }
+                      : undefined
+                  }
                 >
+                  {!isSelected && !allItemsSelected && (
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: palette.strokeColor }}
+                    />
+                  )}
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="flex-1">{filter.label}</span>
-                  <span className={`rounded px-1.5 py-0.5 text-xs ${isSelected || allItemsSelected ? "bg-white/20" : "bg-gray-100"}`}>
+                  <span className={`flex-1 ${isSelected || allItemsSelected ? "" : "text-plp-gray-700"}`}>{filter.label}</span>
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-xs ${isSelected || allItemsSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"}`}
+                  >
                     {filter.shortLabel}
                   </span>
                 </button>
