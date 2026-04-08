@@ -2,77 +2,51 @@
 
 import { useEffect, useRef, useState } from 'react'
 import JSZip from 'jszip'
-import { icon, type IconDefinition } from '@fortawesome/fontawesome-svg-core'
-import { faAnchor, faBuilding, faPersonMilitaryPointing } from '@fortawesome/free-solid-svg-icons'
+import { MAP_FILTERS, type MapFilterId, type MapFilterItemOption } from '@/components/map-filter-config'
 import {
-  DEFAULT_ACTIVE_FILTERS,
-  MAP_FILTERS,
-  MAP_FILTER_COLORS,
-  type MapFilterId,
-  type MapFilterItemOption,
-} from '@/components/map-filters'
-import { Layers3, MapPin, Tag, X } from 'lucide-react'
+  buildGeometryFamilyMap,
+  derivePrLineFeatures,
+  CATEGORY_STYLES,
+  COMPACT_AR_POINT_CODES,
+  DEFAULT_FILTERS,
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM,
+  INSTITUTIONAL_BLUE,
+  KMZ_PATH,
+  MAP_STYLES,
+  buildCatalog,
+  createDotSvg,
+  createDiamondSvg,
+  createReferenceLabelSvg,
+  createMarkerSvg,
+  getArrendamientoAvailabilityStatus,
+  getBalizaColor,
+  getCatalogLabel,
+  getFeatureItemKey,
+  getGeometryCenter,
+  parseKML,
+  sanitizeDescription,
+  shouldRenderFeature,
+  type ArrendamientoAvailability,
+  type DotMarkerSize,
+  type MapOverlay,
+  type MarkerIconType,
+  type ParsedFeature,
+  type SelectedFeatureDetails,
+} from '@/components/working-google-map-utils'
+import {
+  DesktopSelectionPanel,
+  MobileSelectionPanel,
+} from '@/components/working-google-map-panels'
 
 /// <reference types="google.maps" />
-
-const KMZ_PATH = '/permUso.kmz'
-const DEFAULT_FILTERS = DEFAULT_ACTIVE_FILTERS
-const ALL_FILTER_IDS = MAP_FILTERS.map((filter) => filter.id)
-const INSTITUTIONAL_BLUE = '#1B1E4A'
-
-const MAP_STYLES: google.maps.MapTypeStyle[] = [
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#eef2f6' }] },
-  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#d6dde8' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#c7d2df' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#708099' }] },
-  { featureType: 'landscape.man_made', stylers: [{ color: '#f5f6f8' }] },
-  { featureType: 'landscape.natural', stylers: [{ color: '#edf3ef' }] },
-  { featureType: 'water', stylers: [{ color: '#cfe0ee' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#6b87a2' }] },
-  { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ color: '#f8fafc' }] },
-]
-
-type GeometryType = 'point' | 'line' | 'polygon'
-type MarkerIconType = 'person' | 'anchor' | 'building'
-
-type ParsedFeature = {
-  id: string
-  name: string
-  description: string
-  category: MapFilterId | 'OTHER'
-  sourceGroup: string
-  geometryType: GeometryType
-  points: google.maps.LatLngLiteral[]
-  rings?: google.maps.LatLngLiteral[][]
-}
-
-type MapOverlay =
-  | google.maps.Marker
-  | google.maps.Polyline
-  | google.maps.Polygon
-  | google.maps.Circle
 
 type WorkingGoogleMapProps = {
   activeFilters?: MapFilterId[]
   activeItemKeys?: string[]
   onCatalogChange?: (catalog: Partial<Record<MapFilterId, MapFilterItemOption[]>>) => void
   height?: string
-}
-
-type SelectedFeatureDetails = {
-  id: string
-  itemKey: string
-  label: string
-  code: string
-  category: MapFilterId | 'OTHER'
-  categoryLabel: string
-  sourceGroup: string
-  description: string
-  position: google.maps.LatLngLiteral
+  arrendamientoAvailability?: ArrendamientoAvailability
 }
 
 declare global {
@@ -82,245 +56,12 @@ declare global {
   }
 }
 
-const CATEGORY_STYLES: Record<
-  MapFilterId,
-  {
-    strokeColor: string
-    selectedStrokeColor: string
-    fillColor: string
-    badgeColor: string
-    iconType?: MarkerIconType
-    pointIconType?: MarkerIconType
-  }
-> = {
-  ST: { ...MAP_FILTER_COLORS.ST, selectedStrokeColor: '#1d4ed8', pointIconType: 'anchor' },
-  AC: { ...MAP_FILTER_COLORS.AC, selectedStrokeColor: '#b45309', iconType: 'person' },
-  AR: { ...MAP_FILTER_COLORS.AR, selectedStrokeColor: '#166534' },
-  BA: { ...MAP_FILTER_COLORS.BA, selectedStrokeColor: '#b91c1c' },
-  PR: { ...MAP_FILTER_COLORS.PR, selectedStrokeColor: '#475569' },
-  EJ: { ...MAP_FILTER_COLORS.EJ, selectedStrokeColor: '#6d28d9' },
-  ED: { ...MAP_FILTER_COLORS.ED, selectedStrokeColor: '#1e40af', iconType: 'building' },
-  FF: { ...MAP_FILTER_COLORS.FF, selectedStrokeColor: '#1e293b' },
-}
-
-const MARKER_ICON_DEFINITIONS: Record<MarkerIconType, IconDefinition> = {
-  person: faPersonMilitaryPointing,
-  anchor: faAnchor,
-  building: faBuilding,
-}
-
-// Solo estas categorias tienen sentido como secuencias de puntos conectadas.
-const CONNECT_POINT_GROUPS = new Set<MapFilterId>(['PR', 'BA'])
-const FEATURE_LABEL_ALIASES: Record<string, string> = {
-  'AR-03': 'TecPlata',
-  'AR-03-02': 'TecPlata',
-}
-
-function getDirectChildText(parent: Element, localName: string): string {
-  const child = Array.from(parent.children).find((element) => element.localName === localName)
-  return child?.textContent?.trim() || ''
-}
-
-function parseCoordinateString(rawCoordinates: string): google.maps.LatLngLiteral[] {
-  return rawCoordinates
-    .trim()
-    .split(/\s+/)
-    .map((coordinateSet) => {
-      const [lng, lat] = coordinateSet.split(',')
-      return {
-        lat: Number.parseFloat(lat),
-        lng: Number.parseFloat(lng),
-      }
-    })
-    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
-}
-
-function extractCategoryId(folderName: string, placemarkName: string): MapFilterId | 'OTHER' {
-  const candidates = [folderName, placemarkName].map((value) => value.trim().toUpperCase())
-
-  for (const candidate of candidates) {
-    if (candidate === 'SI' || candidate.startsWith('SI-')) {
-      return 'ST'
-    }
-
-    const match = ALL_FILTER_IDS.find((filterId) => candidate === filterId || candidate.startsWith(`${filterId}-`))
-    if (match) {
-      return match
-    }
-  }
-
-  return 'OTHER'
-}
-
-function getGeometryCenter(feature: ParsedFeature): google.maps.LatLngLiteral {
-  const sourcePoints = feature.geometryType === 'polygon' && feature.rings?.[0]?.length
-    ? feature.rings[0]
-    : feature.points
-
-  const total = sourcePoints.reduce(
-    (accumulator, point) => ({
-      lat: accumulator.lat + point.lat,
-      lng: accumulator.lng + point.lng,
-    }),
-    { lat: 0, lng: 0 },
-  )
-
-  return {
-    lat: total.lat / sourcePoints.length,
-    lng: total.lng / sourcePoints.length,
-  }
-}
-
-function sanitizeDescription(description: string) {
-  return description.replace(/<BR\s*\/?>/gi, '<br />')
-}
-
-function isTechnicalFeatureCode(value: string) {
-  return /^[A-Z]{2}(?:-\d+)+(?:-\d+)*$/i.test(value.trim())
-}
-
-function isGeneratedFallbackName(value: string) {
-  return /^Elemento\s+\d+$/i.test(value.trim())
-}
-
-function getCatalogLabel(description: string, fallbackName: string) {
-  if (FEATURE_LABEL_ALIASES[fallbackName]) {
-    return FEATURE_LABEL_ALIASES[fallbackName]
-  }
-
-  const normalizedKey = fallbackName.split('-').slice(0, 2).join('-')
-  if (FEATURE_LABEL_ALIASES[normalizedKey]) {
-    return FEATURE_LABEL_ALIASES[normalizedKey]
-  }
-
-  if (fallbackName && !isTechnicalFeatureCode(fallbackName) && !isGeneratedFallbackName(fallbackName)) {
-    return fallbackName
-  }
-
-  const plainText = description
-    .replace(/<!\[CDATA\[|\]\]>/g, '')
-    .replace(/<BR\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (!plainText) {
-    return fallbackName
-  }
-
-  const withoutElevation = plainText
-    .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line && !line.toUpperCase().includes('ELEVATION'))
-
-  const candidate = (withoutElevation || plainText)
-    .replace(/^\d+\s+/, '')
-    .replace(/[_-]+/g, ' ')
-    .trim()
-
-  return candidate || fallbackName
-}
-
-function getFeatureItemKey(feature: ParsedFeature) {
-  return `${feature.category}:${feature.name}`
-}
-
-function buildCatalog(features: ParsedFeature[]): Partial<Record<MapFilterId, MapFilterItemOption[]>> {
-  const catalog: Partial<Record<MapFilterId, MapFilterItemOption[]>> = {}
-
-  ALL_FILTER_IDS.forEach((category) => {
-    const counts = new Map<string, number>()
-
-    features
-      .filter((feature) => feature.category === category)
-      .forEach((feature) => {
-        const current = counts.get(feature.name) || 0
-        counts.set(feature.name, current + 1)
-      })
-
-    catalog[category] = Array.from(counts.entries())
-      .map(([name, count]) => ({
-        key: `${category}:${name}`,
-        name,
-        label: getCatalogLabel(
-          features.find((feature) => feature.category === category && feature.name === name)?.description || '',
-          name,
-        ),
-        count,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'es'))
-  })
-
-  return catalog
-}
-
-function createDotSvg(color: string, isSelected = false) {
-  const outerStroke = color
-  const innerFill = color
-  const innerRadius = isSelected ? 6.2 : 5.2
-  const outerRadius = isSelected ? 10.5 : 9.2
-  const glow = isSelected ? 0.34 : 0.2
-
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="shadow" x="0" y="0" width="34" height="34" filterUnits="userSpaceOnUse">
-            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="${glow}" />
-          </filter>
-        </defs>
-        <g filter="url(#shadow)">
-          <circle cx="17" cy="17" r="${outerRadius}" fill="white" stroke="${outerStroke}" stroke-width="${isSelected ? 3 : 2.4}" />
-          <circle cx="17" cy="17" r="${innerRadius}" fill="${innerFill}" />
-        </g>
-      </svg>
-    `)}`,
-    scaledSize: new window.google.maps.Size(34, 34),
-    anchor: new window.google.maps.Point(17, 17),
-  }
-}
-
-function createMarkerSvg(iconType: MarkerIconType, color: string, isSelected = false) {
-  const markerSize = 28
-  const markerCenter = markerSize / 2
-  const strokeWidth = isSelected ? 2.2 : 1.4
-  const radius = 12
-  const strokeColor = color
-  const fontAwesomeSvg = icon(MARKER_ICON_DEFINITIONS[iconType], {
-    styles: { color: strokeColor },
-    attributes: {
-      x: iconType === 'person' ? '7' : '8',
-      y: iconType === 'person' ? '7' : '8',
-      width: iconType === 'person' ? '14' : '12',
-      height: iconType === 'person' ? '14' : '12',
-    },
-  }).html.join('')
-  const svg = `
-      <svg width="${markerSize}" height="${markerSize}" viewBox="0 0 ${markerSize} ${markerSize}" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="shadow" x="0" y="0" width="${markerSize}" height="${markerSize}" filterUnits="userSpaceOnUse">
-            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="${isSelected ? 0.34 : 0.2}" />
-          </filter>
-        </defs>
-        <g filter="url(#shadow)">
-          <circle cx="${markerCenter}" cy="${markerCenter}" r="${radius}" fill="white" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>
-          ${fontAwesomeSvg}
-        </g>
-      </svg>
-    `
-
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(markerSize, markerSize),
-    anchor: new window.google.maps.Point(markerCenter, markerCenter),
-  }
-}
-
 export default function WorkingGoogleMap({
   activeFilters = DEFAULT_FILTERS,
   activeItemKeys = [],
   onCatalogChange,
   height = '600px',
+  arrendamientoAvailability,
 }: WorkingGoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState('Iniciando...')
@@ -328,7 +69,6 @@ export default function WorkingGoogleMap({
   const [kmlMethod, setKmlMethod] = useState<'layer' | 'direct'>('direct')
   const [visibleItemsCount, setVisibleItemsCount] = useState(0)
   const mapCreatedRef = useRef(false)
-  const hasInitialViewportRef = useRef(false)
   const directFeaturesRef = useRef<ParsedFeature[]>([])
   const kmzLayerRef = useRef<google.maps.KmlLayer | null>(null)
   const overlaysRef = useRef<MapOverlay[]>([])
@@ -411,12 +151,14 @@ export default function WorkingGoogleMap({
     color: string,
     isSelected: boolean,
     iconType?: MarkerIconType,
+    size: DotMarkerSize = 'default',
+    customIcon?: google.maps.Icon,
   ) => {
     const marker = new window.google.maps.Marker({
       position: feature.points[0],
       map: mapInstance,
       title: feature.name,
-      icon: iconType ? createMarkerSvg(iconType, color, isSelected) : createDotSvg(color, isSelected),
+      icon: customIcon || (iconType ? createMarkerSvg(iconType, color, isSelected) : createDotSvg(color, isSelected, size)),
       zIndex: isSelected ? 50 : 30,
     })
 
@@ -425,99 +167,6 @@ export default function WorkingGoogleMap({
     })
 
     overlaysRef.current.push(marker)
-  }
-
-  const parseKML = (kmlContent: string) => {
-    const parser = new DOMParser()
-    const xmlDoc = parser.parseFromString(kmlContent, 'text/xml')
-    const folders = Array.from(xmlDoc.getElementsByTagName('Folder'))
-    const parsedFeatures: ParsedFeature[] = []
-    let featureIndex = 0
-
-    const parsePlacemark = (placemark: Element, sourceGroup: string) => {
-      const placemarkName = getDirectChildText(placemark, 'name') || `Elemento ${featureIndex + 1}`
-      const description = getDirectChildText(placemark, 'description')
-      const category = extractCategoryId(sourceGroup, placemarkName)
-      let hasGeometry = false
-
-      const polygonRings = Array.from(placemark.getElementsByTagName('Polygon'))
-        .map((polygon) => {
-          const coordinatesNode = polygon.getElementsByTagName('coordinates')[0]
-          return coordinatesNode ? parseCoordinateString(coordinatesNode.textContent || '') : []
-        })
-        .filter((ring) => ring.length >= 3)
-
-      if (polygonRings.length > 0) {
-        hasGeometry = true
-        parsedFeatures.push({
-          id: `feature-${featureIndex++}`,
-          name: placemarkName,
-          description,
-          category,
-          sourceGroup,
-          geometryType: 'polygon',
-          points: polygonRings[0],
-          rings: polygonRings,
-        })
-      }
-
-      const lineCoordinates = Array.from(placemark.getElementsByTagName('LineString'))
-        .flatMap((lineString) => {
-          const coordinatesNode = lineString.getElementsByTagName('coordinates')[0]
-          return coordinatesNode ? [parseCoordinateString(coordinatesNode.textContent || '')] : []
-        })
-        .filter((path) => path.length >= 2)
-
-      if (lineCoordinates.length > 0) {
-        hasGeometry = true
-        lineCoordinates.forEach((path, pathIndex) => {
-          parsedFeatures.push({
-            id: `feature-${featureIndex++}-${pathIndex}`,
-            name: placemarkName,
-            description,
-            category,
-            sourceGroup,
-            geometryType: 'line',
-            points: path,
-          })
-        })
-      }
-
-      const pointCoordinates = Array.from(placemark.getElementsByTagName('Point'))
-        .flatMap((point) => {
-          const coordinatesNode = point.getElementsByTagName('coordinates')[0]
-          return coordinatesNode ? parseCoordinateString(coordinatesNode.textContent || '') : []
-        })
-
-      if (pointCoordinates.length > 0) {
-        hasGeometry = true
-        parsedFeatures.push({
-          id: `feature-${featureIndex++}`,
-          name: placemarkName,
-          description,
-          category,
-          sourceGroup,
-          geometryType: 'point',
-          points: [pointCoordinates[0]],
-        })
-      }
-
-      if (!hasGeometry) {
-        console.warn('Placemark sin geometría utilizable:', placemarkName)
-      }
-    }
-
-    if (folders.length > 0) {
-      folders.forEach((folder) => {
-        const folderName = getDirectChildText(folder, 'name') || 'GENERAL'
-        const placemarks = Array.from(folder.getElementsByTagName('Placemark'))
-        placemarks.forEach((placemark) => parsePlacemark(placemark, folderName))
-      })
-    } else {
-      Array.from(xmlDoc.getElementsByTagName('Placemark')).forEach((placemark) => parsePlacemark(placemark, 'GENERAL'))
-    }
-
-    return parsedFeatures
   }
 
   const renderDirectFeatures = (
@@ -529,10 +178,17 @@ export default function WorkingGoogleMap({
   ) => {
     clearMapElements()
 
-    const bounds = new window.google.maps.LatLngBounds()
+    const featuresWithDerivedLines = [...features, ...derivePrLineFeatures(features)]
     const selectedItemsSet = new Set(selectedItemKeys)
-    const visibleFeatures = features.filter((feature) => {
-      if (feature.category === 'OTHER' || !selectedFilters.includes(feature.category)) {
+    const geometryFamilyMap = buildGeometryFamilyMap(featuresWithDerivedLines)
+    const visibleFeatures = featuresWithDerivedLines.filter((feature) => {
+      const geometryFamilies = geometryFamilyMap.get(getFeatureItemKey(feature))
+
+      if (
+        feature.category === 'OTHER' ||
+        !selectedFilters.includes(feature.category) ||
+        !shouldRenderFeature(feature, geometryFamilies)
+      ) {
         return false
       }
 
@@ -543,16 +199,16 @@ export default function WorkingGoogleMap({
 
       return selectedItemsSet.has(getFeatureItemKey(feature))
     })
-    const pointGroups = new Map<string, ParsedFeature[]>()
-
-    const extendBounds = (points: google.maps.LatLngLiteral[]) => {
-      points.forEach((point) => bounds.extend(point))
-    }
 
     visibleFeatures.forEach((feature) => {
       const category = feature.category as MapFilterId
       const style = CATEGORY_STYLES[category]
       const isSelected = isFeatureHighlighted(feature, currentSelection)
+      const availabilityStatus = getArrendamientoAvailabilityStatus(feature, arrendamientoAvailability)
+      const isOccupiedArrendamiento = category === 'AR' && availabilityStatus === false
+      const baseStrokeColor = isOccupiedArrendamiento ? '#dc2626' : style.strokeColor
+      const selectedStrokeColor = isOccupiedArrendamiento ? '#991b1b' : style.selectedStrokeColor
+      const baseFillColor = isOccupiedArrendamiento ? '#fecaca' : style.fillColor
 
       if (style.iconType) {
         const position = getGeometryCenter(feature)
@@ -562,7 +218,7 @@ export default function WorkingGoogleMap({
           title: feature.name,
           icon: createMarkerSvg(
             style.iconType,
-            isSelected ? style.selectedStrokeColor : style.strokeColor,
+            isSelected ? selectedStrokeColor : baseStrokeColor,
             isSelected,
           ),
           zIndex: isSelected ? 50 : undefined,
@@ -573,7 +229,6 @@ export default function WorkingGoogleMap({
         })
 
         overlaysRef.current.push(marker)
-        extendBounds([position])
         return
       }
 
@@ -582,10 +237,10 @@ export default function WorkingGoogleMap({
           const polygon = new window.google.maps.Polygon({
             map: mapInstance,
             paths: ring,
-            strokeColor: isSelected ? style.selectedStrokeColor : style.strokeColor,
+            strokeColor: isSelected ? selectedStrokeColor : baseStrokeColor,
             strokeOpacity: 1,
             strokeWeight: isSelected ? 4 : category === 'AR' ? 2.5 : 2,
-            fillColor: style.fillColor,
+            fillColor: baseFillColor,
             fillOpacity: isSelected ? (category === 'AR' ? 0.8 : 0.38) : category === 'AR' ? 0.28 : 0.14,
             zIndex: isSelected ? 40 : 20,
           })
@@ -595,7 +250,6 @@ export default function WorkingGoogleMap({
           })
 
           overlaysRef.current.push(polygon)
-          extendBounds(ring)
         })
         return
       }
@@ -604,7 +258,7 @@ export default function WorkingGoogleMap({
         const polyline = new window.google.maps.Polyline({
           map: mapInstance,
           path: feature.points,
-          strokeColor: isSelected ? style.selectedStrokeColor : style.strokeColor,
+          strokeColor: isSelected ? selectedStrokeColor : baseStrokeColor,
           strokeOpacity: isSelected ? 1 : 0.9,
           strokeWeight: isSelected ? 5 : category === 'EJ' ? 3 : 2,
           zIndex: isSelected ? 40 : 15,
@@ -615,74 +269,46 @@ export default function WorkingGoogleMap({
         })
 
         overlaysRef.current.push(polyline)
-        extendBounds(feature.points)
+
         return
       }
 
       if (feature.geometryType === 'point' && feature.points.length > 0) {
-        createPointMarker(
-          mapInstance,
-          feature,
-          isSelected ? style.selectedStrokeColor : style.strokeColor,
-          isSelected,
-          style.pointIconType,
-        )
-        extendBounds(feature.points)
-
-        const groupKey = `${category}-${feature.sourceGroup}`
-        const currentGroup = pointGroups.get(groupKey) || []
-        currentGroup.push(feature)
-        pointGroups.set(groupKey, currentGroup)
-      }
-    })
-
-    pointGroups.forEach((groupFeatures) => {
-      const category = groupFeatures[0].category as MapFilterId
-      const style = CATEGORY_STYLES[category]
-      const path = groupFeatures.map((feature) => feature.points[0])
-      const isSelectedGroup =
-        currentSelection?.category === category && currentSelection.code === groupFeatures[0].sourceGroup
-
-      if (path.length >= 2 && CONNECT_POINT_GROUPS.has(category)) {
-        const polyline = new window.google.maps.Polyline({
-          map: mapInstance,
-          path,
-          strokeColor: isSelectedGroup ? style.selectedStrokeColor : style.strokeColor,
-          strokeOpacity: isSelectedGroup ? 1 : 0.9,
-          strokeWeight: isSelectedGroup ? 5 : category === 'ST' ? 3 : 2,
-          zIndex: isSelectedGroup ? 45 : 10,
-        })
-
-        polyline.addListener('click', () => {
-          openFeaturePanel(mapInstance, groupFeatures[0], {
-            position: path[0],
-            code: groupFeatures[0].sourceGroup,
-            label: groupFeatures[0].sourceGroup,
-            description: `${groupFeatures.length} elementos conectados`,
-          })
-        })
-
-        overlaysRef.current.push(polyline)
-        extendBounds(path)
-      }
-
-      path.forEach((point, index) => {
-        const feature = groupFeatures[index]
-        if (!CONNECT_POINT_GROUPS.has(category)) {
+        if (category === 'PR') {
+          createPointMarker(
+            mapInstance,
+            feature,
+            isSelected ? selectedStrokeColor : baseStrokeColor,
+            isSelected,
+            undefined,
+            'default',
+            createReferenceLabelSvg(getCatalogLabel(feature.description, feature.name), isSelected),
+          )
           return
         }
 
-        extendBounds([point])
-      })
+        const pointSize: DotMarkerSize =
+          category === 'AR' && COMPACT_AR_POINT_CODES.has(feature.name) ? 'compact' : 'default'
+        const pointIconType: MarkerIconType | undefined =
+          category === 'AR'
+            ? 'billboard'
+            : style.pointIconType
+        const balizaColor = category === 'BA' ? getBalizaColor(feature) : null
+        createPointMarker(
+          mapInstance,
+          feature,
+          isSelected ? selectedStrokeColor : baseStrokeColor,
+          isSelected,
+          pointIconType,
+          pointSize,
+          balizaColor ? createDiamondSvg(balizaColor, isSelected) : undefined,
+        )
+      }
     })
 
     setVisibleItemsCount(visibleFeatures.length)
     setStatus(`✅ Mapa directo + ${visibleFeatures.length} elementos del KMZ`)
 
-    if (!currentSelection && !bounds.isEmpty() && !hasInitialViewportRef.current) {
-      mapInstance.fitBounds(bounds, 48)
-      hasInitialViewportRef.current = true
-    }
   }
 
   const focusSelectedFeature = (
@@ -694,23 +320,6 @@ export default function WorkingGoogleMap({
 
     const matchingFeature = features.find((feature) => getFeatureItemKey(feature) === selected.itemKey)
     if (!matchingFeature) return
-
-    if (selected.code === matchingFeature.sourceGroup && CONNECT_POINT_GROUPS.has(matchingFeature.category as MapFilterId)) {
-      const groupedPoints = features
-        .filter(
-          (feature) =>
-            feature.category === matchingFeature.category &&
-            feature.sourceGroup === matchingFeature.sourceGroup &&
-            feature.geometryType === 'point' &&
-            feature.points.length > 0,
-        )
-        .map((feature) => feature.points[0])
-
-      if (groupedPoints.length > 0) {
-        focusMapOnFeature(mapInstance, matchingFeature, groupedPoints)
-        return
-      }
-    }
 
     focusMapOnFeature(mapInstance, matchingFeature)
   }
@@ -766,7 +375,6 @@ export default function WorkingGoogleMap({
       console.log('WorkingMap: KML interno parseado, elementos encontrados:', parsedFeatures.length)
 
       directFeaturesRef.current = parsedFeatures
-      hasInitialViewportRef.current = false
       onCatalogChange?.(buildCatalog(parsedFeatures))
       renderDirectFeatures(mapInstance, parsedFeatures, activeFilters, activeItemKeys, selectedFeature)
       
@@ -798,8 +406,8 @@ export default function WorkingGoogleMap({
       try {
         console.log('WorkingMap: Creando mapa...')
         const mapInstance = new window.google.maps.Map(mapRef.current, {
-          center: { lat: -34.8738, lng: -57.8774 },
-          zoom: 15,
+          center: DEFAULT_MAP_CENTER,
+          zoom: DEFAULT_MAP_ZOOM,
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
           streetViewControl: false,
           fullscreenControl: true,
@@ -989,90 +597,18 @@ export default function WorkingGoogleMap({
         />
 
         {kmlMethod === 'direct' && selectedFeature && (
-          <div className="absolute left-0 top-0 z-10 h-full w-full overflow-y-auto border-r border-slate-200 bg-white shadow-2xl md:w-[360px]">
-            <div
-              className="flex items-start justify-between border-b border-white/40 p-4 pb-3"
-              style={{ backgroundColor: '#CAE6FF' }}
-            >
-              <div className="pr-4">
-                <span
-                  className="mb-2 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                  style={{
-                    color: INSTITUTIONAL_BLUE,
-                    borderColor: '#1B1E4A33',
-                    backgroundColor: '#FFFFFF',
-                  }}
-                >
-                  {selectedFeature.categoryLabel}
-                </span>
-                <h3 className="text-xl font-bold text-[#1B1E4A]">{selectedFeature.label}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedFeature(null)}
-                className="rounded-full p-2 text-[#1B1E4A] transition-colors hover:bg-white/50"
-                aria-label="Cerrar"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 p-4 pt-3">
-              <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
-                <div className="rounded-xl p-2" style={{ backgroundColor: '#E0EEFF' }}>
-                  <Tag className="h-5 w-5 text-[#1B1E4A]" />
-                </div>
-                <div className="flex-1">
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[#1B1E4A]">Código</p>
-                  <p className="text-sm font-medium text-gray-700">{selectedFeature.code}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
-                <div className="rounded-xl p-2" style={{ backgroundColor: '#E0EEFF' }}>
-                  <Layers3 className="h-5 w-5 text-[#1B1E4A]" />
-                </div>
-                <div className="flex-1">
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[#1B1E4A]">Grupo</p>
-                  <p className="text-sm text-gray-700">{selectedFeature.sourceGroup}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
-                <div className="rounded-xl p-2" style={{ backgroundColor: '#E0EEFF' }}>
-                  <MapPin className="h-5 w-5 text-[#1B1E4A]" />
-                </div>
-                <div className="flex-1">
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[#1B1E4A]">Ubicación</p>
-                  <p className="text-sm text-gray-700">
-                    {selectedFeature.position.lat.toFixed(6)}, {selectedFeature.position.lng.toFixed(6)}
-                  </p>
-                </div>
-              </div>
-
-              {googleMapsDirectionsUrl && (
-                <a
-                  href={googleMapsDirectionsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex w-full items-center justify-center rounded-xl bg-[#1B1E4A] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2A2F6B]"
-                >
-                  Ver en Google Maps
-                </a>
-              )}
-
-              {selectedFeature.description && (
-                <div className="rounded-xl border border-slate-200 p-3 shadow-sm" style={{ backgroundColor: '#F8FAFC' }}>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[#1B1E4A]">Detalle</p>
-                  <div
-                    className="text-sm leading-relaxed text-gray-700"
-                    dangerouslySetInnerHTML={{ __html: sanitizeDescription(selectedFeature.description) }}
-                  />
-                </div>
-              )}
-
-            </div>
-          </div>
+          <>
+            <DesktopSelectionPanel
+              directionsUrl={googleMapsDirectionsUrl}
+              onClose={() => setSelectedFeature(null)}
+              selectedFeature={selectedFeature}
+            />
+            <MobileSelectionPanel
+              directionsUrl={googleMapsDirectionsUrl}
+              onClose={() => setSelectedFeature(null)}
+              selectedFeature={selectedFeature}
+            />
+          </>
         )}
       </div>
       

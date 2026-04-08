@@ -4,11 +4,12 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import WorkingGoogleMap from "@/components/working-google-map"
-import MapFilters, {
+import MapFilters from "@/components/map-filters"
+import {
   DEFAULT_ACTIVE_FILTERS,
   type MapFilterId,
   type MapFilterItemOption,
-} from "@/components/map-filters"
+} from "@/components/map-filter-config"
 import { 
   FileText
 } from "lucide-react"
@@ -27,7 +28,9 @@ function isDefaultExcludedArrendamiento(item: MapFilterItemOption) {
   const normalized = normalizeMapLabel(haystack)
   return (
     item.key === "AR:AR-33" ||
+    item.key === "AR:AR-48" ||
     normalized.includes("AR 33") ||
+    normalized.includes("AR 48") ||
     (normalized.includes("YPF") &&
       normalized.includes("CANERIA") &&
       normalized.includes("PETROQUIMICA"))
