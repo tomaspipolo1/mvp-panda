@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
+import JSZip from 'jszip'
 
 // Declaración de tipos para Google Maps
 /// <reference types="google.maps" />
@@ -49,6 +50,17 @@ export default function GoogleMapsKML({
   const [kmlLayers, setKMLLayers] = useState<KMLLayer[]>([])
   const [selectedKMLFile, setSelectedKMLFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const extractKmlFromKmz = async (kmzBlob: Blob) => {
+    const zip = await JSZip.loadAsync(await kmzBlob.arrayBuffer())
+    const kmlEntry = zip.file(/\.kml$/i)[0]
+
+    if (!kmlEntry) {
+      throw new Error('No se encontró ningún archivo .kml dentro del .kmz')
+    }
+
+    return kmlEntry.async('text')
+  }
 
   // Initialize Google Maps
   useEffect(() => {
@@ -165,8 +177,9 @@ export default function GoogleMapsKML({
     const file = event.target.files?.[0]
     if (!file) return
 
-    if (!file.name.toLowerCase().endsWith('.kml')) {
-      setError('Por favor selecciona un archivo KML válido')
+    const lowerName = file.name.toLowerCase()
+    if (!lowerName.endsWith('.kml') && !lowerName.endsWith('.kmz')) {
+      setError('Por favor selecciona un archivo KML o KMZ válido')
       return
     }
 
@@ -174,32 +187,25 @@ export default function GoogleMapsKML({
     loadKMLFromFile(file)
   }
 
-  // Load KML from file
-  const loadKMLFromFile = (file: File) => {
+  // Load KML/KMZ from file
+  const loadKMLFromFile = async (file: File) => {
     if (!map) {
       setError('Mapa no inicializado')
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const kmlContent = e.target?.result as string
-        
-        // Create a blob URL for the KML content
-        const blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' })
-        const blobUrl = URL.createObjectURL(blob)
-        
-        // For local files, we need to use a different approach
-        // We'll parse the KML content and create markers manually
-        parseKMLContent(kmlContent)
-        
-      } catch (err) {
-        console.error('Error reading KML file:', err)
-        setError('Error leyendo archivo KML')
-      }
+    try {
+      const lowerName = file.name.toLowerCase()
+      const kmlContent = lowerName.endsWith('.kmz')
+        ? await extractKmlFromKmz(file)
+        : await file.text()
+
+      // For local files, parse the KML content and create markers manually.
+      parseKMLContent(kmlContent)
+    } catch (err) {
+      console.error('Error reading KML/KMZ file:', err)
+      setError('Error leyendo archivo KML/KMZ')
     }
-    reader.readAsText(file)
   }
 
   // Parse KML content and create markers
@@ -262,7 +268,7 @@ export default function GoogleMapsKML({
       setError(null)
     } catch (err) {
       console.error('Error parsing KML:', err)
-      setError('Error procesando contenido KML')
+      setError('Error procesando contenido KML/KMZ')
     }
   }
 
@@ -338,7 +344,7 @@ export default function GoogleMapsKML({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".kml"
+              accept=".kml,.kmz"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -348,7 +354,7 @@ export default function GoogleMapsKML({
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Cargar KML
+              Cargar KML/KMZ
             </Button>
 
             {/* Map Controls */}
@@ -371,7 +377,7 @@ export default function GoogleMapsKML({
           <div className="mt-3 pt-3 border-t border-gray-200">
             <div className="flex items-center gap-2 mb-2">
               <Layers className="h-4 w-4 text-plp-primary" />
-              <span className="text-sm font-medium text-plp-primary">Capas KML</span>
+              <span className="text-sm font-medium text-plp-primary">Capas KML/KMZ</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {kmlLayers.map((layer, index) => (

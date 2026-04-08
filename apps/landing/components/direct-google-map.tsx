@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 
 /// <reference types="google.maps" />
 
+const KMZ_PATH = '/permUso.kmz'
+
 export default function DirectGoogleMap() {
   const mapRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -115,9 +117,9 @@ export default function DirectGoogleMap() {
           setMap(mapInstance)
           setIsLoading(false)
           
-          // Cargar KML automáticamente
-          console.log('📁 Iniciando carga de KML...')
-          loadKML(mapInstance, '/permUso.kml')
+          // Cargar KMZ automáticamente usando Google KmlLayer.
+          console.log('📁 Iniciando carga de KMZ...')
+          loadKMZ(mapInstance, KMZ_PATH)
         }
 
       } catch (error) {
@@ -150,13 +152,13 @@ export default function DirectGoogleMap() {
     }
   }, [])
 
-  // Función para cargar KML
-  const loadKML = (mapInstance: google.maps.Map, kmlUrl: string) => {
+  // Google Maps puede consumir KMZ remoto directamente.
+  const loadKMZ = (mapInstance: google.maps.Map, kmzUrl: string) => {
     try {
-      console.log('🗂️ Cargando KML:', kmlUrl)
+      console.log('🗂️ Cargando KMZ:', kmzUrl)
       
       const kmlLayer = new google.maps.KmlLayer({
-        url: window.location.origin + kmlUrl,
+        url: `${window.location.origin}${kmzUrl}?t=${Date.now()}`,
         suppressInfoWindows: false,
         map: mapInstance,
         preserveViewport: false
@@ -164,13 +166,13 @@ export default function DirectGoogleMap() {
 
       kmlLayer.addListener('status_changed', () => {
         const status = kmlLayer.getStatus()
-        console.log('Estado KML:', status)
+        console.log('Estado KMZ:', status)
         
         if (status === google.maps.KmlLayerStatus.OK) {
-          console.log('✅ KML cargado exitosamente')
+          console.log('✅ KMZ cargado exitosamente')
           setKmlLayers(prev => [...prev, kmlLayer])
         } else {
-          console.error('❌ Error cargando KML:', status)
+          console.error('❌ Error cargando KMZ:', status)
         }
       })
 
@@ -179,7 +181,7 @@ export default function DirectGoogleMap() {
       })
 
     } catch (error) {
-      console.error('Error al cargar KML:', error)
+      console.error('Error al cargar KMZ:', error)
     }
   }
 
@@ -224,7 +226,7 @@ export default function DirectGoogleMap() {
         <div className="mt-2 space-y-1">
           <p className="text-xs text-green-600">✅ Mapa directo funcionando</p>
           {kmlLayers.length > 0 && (
-            <p className="text-xs text-blue-600">📁 {kmlLayers.length} capas KML cargadas</p>
+            <p className="text-xs text-blue-600">📁 {kmlLayers.length} capas KMZ cargadas</p>
           )}
         </div>
       )}
