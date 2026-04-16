@@ -133,6 +133,119 @@ function parseCoordinateString(rawCoordinates: string): google.maps.LatLngLitera
     .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
 }
 
+const AR_SEGMENT_CONNECTION_TOLERANCE = 1e-5
+
+function arePointsNear(left: google.maps.LatLngLiteral, right: google.maps.LatLngLiteral) {
+  return (
+    Math.abs(left.lat - right.lat) <= AR_SEGMENT_CONNECTION_TOLERANCE &&
+    Math.abs(left.lng - right.lng) <= AR_SEGMENT_CONNECTION_TOLERANCE
+  )
+}
+
+function isClosedRing(points: google.maps.LatLngLiteral[]) {
+  if (points.length < 4) return false
+  return arePointsNear(points[0], points[points.length - 1])
+}
+
+function closeRing(points: google.maps.LatLngLiteral[]) {
+  if (points.length === 0) return points
+  if (isClosedRing(points)) {
+    return [...points.slice(0, -1), points[0]]
+  }
+
+  return [...points, points[0]]
+}
+
+function buildRingFromConnectedSegments(
+  segments: google.maps.LatLngLiteral[][],
+  startIndex: number,
+  consumed: Set<number>,
+) {
+  const start = segments[startIndex]
+  if (!start || start.length < 2) return null
+
+  const localConsumed = new Set<number>([startIndex])
+  let ring = [...start]
+
+  while (!isClosedRing(ring)) {
+    const currentEnd = ring[ring.length - 1]
+    let matchedIndex = -1
+    let matchedPoints: google.maps.LatLngLiteral[] | null = null
+
+    for (let index = 0; index < segments.length; index += 1) {
+      if (consumed.has(index) || localConsumed.has(index)) continue
+
+      const candidate = segments[index]
+      if (!candidate || candidate.length < 2) continue
+
+      const startPoint = candidate[0]
+      const endPoint = candidate[candidate.length - 1]
+
+      if (arePointsNear(currentEnd, startPoint)) {
+        matchedIndex = index
+        matchedPoints = candidate
+        break
+      }
+
+      if (arePointsNear(currentEnd, endPoint)) {
+        matchedIndex = index
+        matchedPoints = [...candidate].reverse()
+        break
+      }
+    }
+
+    if (!matchedPoints || matchedIndex < 0) {
+      return null
+    }
+
+    localConsumed.add(matchedIndex)
+    ring = ring.concat(matchedPoints.slice(1))
+  }
+
+  const closedRing = closeRing(ring)
+  if (!isClosedRing(closedRing)) {
+    return null
+  }
+
+  localConsumed.forEach((index) => consumed.add(index))
+  return closedRing
+}
+
+function buildPolygonRingsFromLineSegments(segments: google.maps.LatLngLiteral[][]) {
+  const consumed = new Set<number>()
+  const rings: google.maps.LatLngLiteral[][] = []
+
+  segments.forEach((segment, index) => {
+    if (!segment || segment.length < 3) return
+
+    if (isClosedRing(segment)) {
+      consumed.add(index)
+      rings.push(closeRing(segment))
+    }
+  })
+
+  for (let index = 0; index < segments.length; index += 1) {
+    if (consumed.has(index)) continue
+
+    const ring = buildRingFromConnectedSegments(segments, index, consumed)
+    if (ring) {
+      rings.push(ring)
+    }
+  }
+
+  const uniqueRings = new Map<string, google.maps.LatLngLiteral[]>()
+  rings.forEach((ring) => {
+    const signature = JSON.stringify(
+      ring.map((point) => [Number(point.lng.toFixed(7)), Number(point.lat.toFixed(7))]),
+    )
+    if (!uniqueRings.has(signature)) {
+      uniqueRings.set(signature, ring)
+    }
+  })
+
+  return Array.from(uniqueRings.values())
+}
+
 export function extractCategoryId(folderName: string, placemarkName: string): MapFilterId | 'OTHER' {
   const candidates = [folderName, placemarkName].map((value) => value.trim().toUpperCase())
 
@@ -593,7 +706,33 @@ export function parseKML(kmlContent: string): ParsedFeature[] {
       })
       .filter((ring) => ring.length >= 3)
 
-    if (polygonRings.length > 0) {
+    const standaloneLinearRings =
+      polygonRings.length > 0
+        ? []
+        : Array.from(placemark.getElementsByTagName('LinearRing'))
+            .map((linearRing) => {
+              const coordinatesNode = linearRing.getElementsByTagName('coordinates')[0]
+              return coordinatesNode ? parseCoordinateString(coordinatesNode.textContent || '') : []
+            })
+            .filter((ring) => ring.length >= 3)
+
+    const lineCoordinates = Array.from(placemark.getElementsByTagName('LineString'))
+      .flatMap((lineString) => {
+        const coordinatesNode = lineString.getElementsByTagName('coordinates')[0]
+        return coordinatesNode ? [parseCoordinateString(coordinatesNode.textContent || '')] : []
+      })
+      .filter((path) => path.length >= 2)
+
+    const derivedArPolygonRings =
+      category === 'AR' ? buildPolygonRingsFromLineSegments(lineCoordinates) : []
+
+    const effectivePolygonRings = [
+      ...polygonRings,
+      ...standaloneLinearRings,
+      ...derivedArPolygonRings,
+    ]
+
+    if (effectivePolygonRings.length > 0) {
       hasGeometry = true
       parsedFeatures.push({
         id: `feature-${featureIndex++}`,
@@ -602,17 +741,10 @@ export function parseKML(kmlContent: string): ParsedFeature[] {
         category,
         sourceGroup,
         geometryType: 'polygon',
-        points: polygonRings[0],
-        rings: polygonRings,
+        points: effectivePolygonRings[0],
+        rings: effectivePolygonRings,
       })
     }
-
-    const lineCoordinates = Array.from(placemark.getElementsByTagName('LineString'))
-      .flatMap((lineString) => {
-        const coordinatesNode = lineString.getElementsByTagName('coordinates')[0]
-        return coordinatesNode ? [parseCoordinateString(coordinatesNode.textContent || '')] : []
-      })
-      .filter((path) => path.length >= 2)
 
     if (lineCoordinates.length > 0) {
       hasGeometry = true

@@ -164,19 +164,16 @@ export default function WorkingGoogleMap({
     overlaysRef.current.push(marker)
   }
 
-  const renderDirectFeatures = (
-    mapInstance: google.maps.Map,
+  const getVisibleFeatures = (
     features: ParsedFeature[],
     selectedFilters: MapFilterId[],
     selectedItemKeys: string[],
-    currentSelection: SelectedFeatureDetails | null,
   ) => {
-    clearMapElements()
-
     const featuresWithDerivedLines = [...features, ...derivePrLineFeatures(features)]
     const selectedItemsSet = new Set(selectedItemKeys)
     const geometryFamilyMap = buildGeometryFamilyMap(featuresWithDerivedLines)
-    const visibleFeatures = featuresWithDerivedLines.filter((feature) => {
+
+    return featuresWithDerivedLines.filter((feature) => {
       const geometryFamilies = geometryFamilyMap.get(getFeatureItemKey(feature))
 
       if (
@@ -194,6 +191,18 @@ export default function WorkingGoogleMap({
 
       return selectedItemsSet.has(getFeatureItemKey(feature))
     })
+  }
+
+  const renderDirectFeatures = (
+    mapInstance: google.maps.Map,
+    features: ParsedFeature[],
+    selectedFilters: MapFilterId[],
+    selectedItemKeys: string[],
+    currentSelection: SelectedFeatureDetails | null,
+  ) => {
+    clearMapElements()
+
+    const visibleFeatures = getVisibleFeatures(features, selectedFilters, selectedItemKeys)
 
     visibleFeatures.forEach((feature) => {
       const category = feature.category as MapFilterId
@@ -497,6 +506,30 @@ export default function WorkingGoogleMap({
     ? `https://www.google.com/maps/dir/?api=1&destination=${selectedFeature.position.lat},${selectedFeature.position.lng}&travelmode=driving`
     : null
 
+  const handleCloseSelection = () => {
+    if (map) {
+      map.panTo(DEFAULT_MAP_CENTER)
+      map.setZoom(DEFAULT_MAP_ZOOM)
+    }
+
+    setSelectedFeature(null)
+  }
+
+  useEffect(() => {
+    if (!selectedFeature) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleCloseSelection()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedFeature, map])
+
   return (
     <div className="space-y-4">
       <div
@@ -512,12 +545,12 @@ export default function WorkingGoogleMap({
           <>
             <DesktopSelectionPanel
               directionsUrl={googleMapsDirectionsUrl}
-              onClose={() => setSelectedFeature(null)}
+              onClose={handleCloseSelection}
               selectedFeature={selectedFeature}
             />
             <MobileSelectionPanel
               directionsUrl={googleMapsDirectionsUrl}
-              onClose={() => setSelectedFeature(null)}
+              onClose={handleCloseSelection}
               selectedFeature={selectedFeature}
             />
           </>
