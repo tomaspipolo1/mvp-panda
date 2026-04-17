@@ -41,30 +41,53 @@ export default function MapaInteractivo() {
   const [selectedFilters, setSelectedFilters] = useState<MapFilterId[]>(DEFAULT_ACTIVE_FILTERS)
   const [selectedItemKeys, setSelectedItemKeys] = useState<string[]>([])
   const [availableItemsByCategory, setAvailableItemsByCategory] = useState<Partial<Record<MapFilterId, MapFilterItemOption[]>>>({})
-  const [didInitArrendamientos, setDidInitArrendamientos] = useState(false)
+  const [didInitDefaultItems, setDidInitDefaultItems] = useState(false)
 
   useEffect(() => {
-    if (didInitArrendamientos) return
+    if (didInitDefaultItems) return
 
-    const arrendamientos = availableItemsByCategory.AR || []
-    if (arrendamientos.length === 0) return
+    const hasAnyCatalog = DEFAULT_ACTIVE_FILTERS.some(
+      (filterId) => (availableItemsByCategory[filterId] || []).length > 0,
+    )
+    if (!hasAnyCatalog) return
 
     setSelectedItemKeys((current) => {
-      if (current.length > 0) {
-        return current
-      }
+      if (current.length > 0) return current
 
-      return arrendamientos
-        .filter((item) => !isDefaultExcludedArrendamiento(item))
-        .map((item) => item.key)
+      const nextKeys: string[] = []
+      DEFAULT_ACTIVE_FILTERS.forEach((filterId) => {
+        const items = availableItemsByCategory[filterId] || []
+        items.forEach((item) => {
+          if (filterId === "AR" && isDefaultExcludedArrendamiento(item)) return
+          nextKeys.push(item.key)
+        })
+      })
+      return nextKeys
     })
-    setDidInitArrendamientos(true)
-  }, [availableItemsByCategory, didInitArrendamientos])
+    setDidInitDefaultItems(true)
+  }, [availableItemsByCategory, didInitDefaultItems])
 
   const toggleItemKey = (itemKey: string) => {
-    setSelectedItemKeys((current) =>
-      current.includes(itemKey) ? current.filter((value) => value !== itemKey) : [...current, itemKey],
-    )
+    const [categoryId] = itemKey.split(":") as [MapFilterId]
+    const willRemove = selectedItemKeys.includes(itemKey)
+    const nextItemKeys = willRemove
+      ? selectedItemKeys.filter((value) => value !== itemKey)
+      : [...selectedItemKeys, itemKey]
+
+    setSelectedItemKeys(nextItemKeys)
+
+    const remainingInCategory = nextItemKeys.filter((key) => key.startsWith(`${categoryId}:`))
+
+    if (willRemove && remainingInCategory.length === 0) {
+      setSelectedFilters((currentFilters) => currentFilters.filter((value) => value !== categoryId))
+      return
+    }
+
+    if (!willRemove) {
+      setSelectedFilters((currentFilters) =>
+        currentFilters.includes(categoryId) ? currentFilters : [...currentFilters, categoryId],
+      )
+    }
   }
 
   const toggleCategoryItems = (filterId: MapFilterId, itemKeys: string[]) => {
